@@ -1,88 +1,90 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using JobsClassLibrary.Enums;
+﻿using JobsClassLibrary.Enums;
 using MainServer.Managers;
-
 
 namespace MainServer.Handlers
 {
-    public class JobEventHandler(JobManager jobManager, ILogger<JobEventHandler> logger) : Hub
-    {
-        private readonly JobManager _jobManager = jobManager;
-        private readonly ILogger<JobEventHandler> _logger = logger;
+    public delegate Task EventHandlerDelegate(string serviceName, object payload);
 
-        public async Task HandleEventAsync(string eventType, object payload)
+    public class JobEventHandler
+    {
+        private readonly JobManager _jobManager;
+        private readonly ILogger<JobEventHandler> _logger;
+        private readonly Dictionary<string, EventHandlerDelegate> _handlers;
+
+        public JobEventHandler(JobManager jobManager, ILogger<JobEventHandler> logger)
         {
-            _logger.LogInformation("Handling event '{EventType}' with payload: {@Payload}", eventType, payload);
+            _logger = logger;
+            _jobManager = jobManager;
+            _handlers = new Dictionary<string, EventHandlerDelegate>(StringComparer.OrdinalIgnoreCase)
+            {
+                [nameof(JobEvent.UpdateJobStatus)] = HandleUpdateJobStatus,
+                [nameof(JobEvent.StopJob)] = HandleStopJob
+            };
+        }
+
+        public async Task HandleEventAsync(string eventType, object payload, string serviceName)
+        {
+            if (!_handlers.TryGetValue(eventType, out var handler))
+            {
+                _logger.LogError("Unknown event '{Event}' from service '{Service}'", eventType, serviceName);
+                throw new InvalidOperationException($"Unknown event type: {eventType}");
+            }
 
             try
             {
-                switch (eventType)
-                {
-                    case nameof(JobEvent.UpdateJobStatus):
-                        await HandleUpdateJobStatus(payload);
-                        break;
-
-                    case nameof(JobEvent.StopJob):
-                        await HandleStopJob(payload);
-                        break;
-
-                    default:
-                        _logger.LogError("Unknown event type: {EventType}", eventType);
-                        throw new InvalidOperationException($"Unknown event type: {eventType}");
-                }
+                await handler(serviceName, payload);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error handling event '{EventType}'", eventType);
+                _logger.LogError(ex, "Error handling event '{Event}' from service '{Service}'", eventType, serviceName);
                 throw;
             }
         }
 
-        private async Task HandleUpdateJobStatus(object payload)
+        private async Task HandleUpdateJobStatus(string serviceName, object payload)
         {
-            var statusPayload = payload as dynamic;
-
-            if (statusPayload == null)
+            if (!TryParseStatusPayload(payload, out var jobIds, out var status))
             {
-                _logger.LogWarning("Invalid payload for UpdateJobStatus event.");
+                _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobStatus.", serviceName);
+
                 return;
             }
 
-            List<Guid>? jobIds;
-            JobStatus jobStatus;
+            _logger.LogInformation("Service '{Service}' updating status to {Status} for {Count} job(s).",
+                serviceName, status, jobIds.Count);
+
+            await _jobManager.UpdateJobStatusAsync(jobIds, status);
+        }
+
+        private async Task HandleStopJob(string serviceName, object payload)
+        {
+            if (payload is not Guid jobId)
+            {
+                _logger.LogWarning("Service '{Service}' sent invalid payload for StopJob.", serviceName);
+
+                return;
+            }
+
+            _logger.LogInformation("Service '{Service}' stopping job {JobId}.", serviceName, jobId);
+            await _jobManager.StopJobAsync(jobId);
+        }
+
+        private bool TryParseStatusPayload(object payload, out List<Guid> jobIds, out JobStatus status)
+        {
+            jobIds = null!;
+            status = default;
 
             try
             {
-                jobIds = statusPayload?.JobIds.ToObject<List<Guid>>();
-                jobStatus = statusPayload?.JobStatus.ToObject<JobStatus>();
+                dynamic dyn = payload;
+                jobIds = dyn.JobIds.ToObject<List<Guid>>();
+                status = dyn.JobStatus.ToObject<JobStatus>();
+                return jobIds is not null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error parsing the payload for UpdateJobStatus event.");
-                return;
-            }
-
-            if (jobIds != null)
-            {
-                _logger.LogInformation("Updating job status for {JobCount} jobs.", jobIds.Count);
-                await _jobManager.UpdateJobStatusAsync(jobIds, jobStatus);
-            }
-            else
-            {
-                _logger.LogWarning("Missing jobIds or jobStatus in payload for UpdateJobStatus.");
-            }
-        }
-
-        private async Task HandleStopJob(object payload)
-        {
-            if (payload is Guid jobIdToStop)
-            {
-                _logger.LogInformation("Stopping {jobIdToStop} jobs.", jobIdToStop);
-                await _jobManager.StopJobAsync(jobIdToStop);
-            }
-            else
-            {
-                _logger.LogWarning("Invalid or empty payload for StopJob event.");
+                _logger.LogError(ex, "Failed to parse status payload.");
+                return false;
             }
         }
     }

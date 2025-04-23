@@ -75,7 +75,7 @@ namespace MainServer.Hubs
 
             try
             {
-                await _jobEventListener.HandleEventAsync(eventType, payload);
+                await _jobEventListener.HandleEventAsync(eventType, payload, serviceName);
 
                 _logger.LogDebug(
                     "Handled event '{EventType}' from service '{ServiceName}' successfully.",
