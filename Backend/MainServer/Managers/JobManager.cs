@@ -112,12 +112,14 @@ namespace MainServer.Managers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying job {JobId} for deletion.", jobID);
+
                 return false;
             }
 
             if (job == null)
             {
                 _logger.LogWarning("Attempted to delete job {JobId}, but it was not found.", jobID);
+
                 return false;
             }
 
@@ -127,11 +129,13 @@ namespace MainServer.Managers
                 await _db.SaveChangesAsync();
 
                 _logger.LogDebug("Deleted job {JobId}.", jobID);
+
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete job {JobId}.", jobID);
+
                 return false;
             }
         }
