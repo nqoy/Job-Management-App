@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using JobsClassLibrary.Enums;
 using MainServer.Managers;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+
 
 namespace MainServer.Handlers
 {
@@ -75,7 +72,6 @@ namespace MainServer.Handlers
                 _logger.LogWarning("Missing jobIds or jobStatus in payload for UpdateJobStatus.");
             }
         }
-
 
         private async Task HandleStopJob(object payload)
         {

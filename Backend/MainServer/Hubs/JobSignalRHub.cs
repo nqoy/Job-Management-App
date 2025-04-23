@@ -36,11 +36,41 @@ namespace MainServer.Hubs
             var logBuilder = new StringBuilder();
 
             await Groups.AddToGroupAsync(connectionId, serviceName);
-            logBuilder.AppendFormat("Client [{0}] connected with id : {1}", serviceName , connectionId);
+            logBuilder.AppendFormat("Client [{0}] CONNECTED, id : {1}", serviceName , connectionId);
 
             await base.OnConnectedAsync();
 
             _logger.LogInformation(logBuilder.ToString());
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            string connectionId = Context.ConnectionId;
+            string? serviceName = Context.GetHttpContext()?.Request.Query["service"].ToString();
+
+            if (serviceName == null)
+            {
+                _logger.LogError("serviceName is null on hub disconnection");
+                return;  // Return early if the serviceName is null
+            }
+
+            var logBuilder = new StringBuilder();
+
+            // Log client disconnection details
+            logBuilder.AppendFormat("Client [{0}] DISCONNECTED, id : {1} .", serviceName, connectionId);
+
+            if (exception != null)
+            {
+                logBuilder.AppendFormat(" Disconnection reason: {0}", exception.Message);
+            }
+
+            // Log the information to the logger
+            _logger.LogInformation(logBuilder.ToString());
+
+            // Optionally, remove the client from the group if needed
+            await Groups.RemoveFromGroupAsync(connectionId, serviceName);
+
+            await base.OnDisconnectedAsync(exception);
         }
 
         public async Task HandleEvent(string eventType, object payload)
