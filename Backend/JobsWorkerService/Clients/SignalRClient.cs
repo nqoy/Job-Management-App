@@ -19,9 +19,11 @@ namespace JobsWorkerService.Clients
             {
                 throw new ArgumentNullException(nameof(settings), "SignalR HubUrl is not configured in the app settings.");
             }
+            string service = "WorkerService";
+            string connectionUrl = $"{fullHubUrl}?service={service}";
 
             _connection = new HubConnectionBuilder()
-                .WithUrl(fullHubUrl)
+                .WithUrl(connectionUrl)
                 .WithAutomaticReconnect()
                 .Build();
         }

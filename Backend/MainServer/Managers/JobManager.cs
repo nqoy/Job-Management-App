@@ -1,6 +1,6 @@
 ﻿using JobsClassLibrary.Classes;
 using JobsClassLibrary.Enums;
-using MainServer.DB;
+using MainServer.Classes;
 using Microsoft.EntityFrameworkCore;
 
 namespace MainServer.Managers
@@ -37,7 +37,7 @@ namespace MainServer.Managers
                     "Created job {JobId} (Name: {JobName}, Priority: {Priority})",
                     job.JobID, job.Name, job.Priority);
 
-                List<Job> singleJobList = new List<Job> { job };
+                List<Job> singleJobList = [job];
 
                 await _eventManager.SendJobsToWorkerService(singleJobList);
 
@@ -214,6 +214,11 @@ namespace MainServer.Managers
                 _logger.LogError(ex, "Failed to restart job {JobId}.", jobID);
                 return false;
             }
+        }
+
+        internal async Task UpdateJobStatusAsync(dynamic jobIds, dynamic? jobStatus)
+        {
+            throw new NotImplementedException();
         }
     }
 }

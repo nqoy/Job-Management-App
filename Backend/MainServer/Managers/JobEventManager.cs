@@ -5,9 +5,10 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace MainServer.Managers
 {
-    public class JobEventManager(IHubContext<JobSignalRHub> hubContext)
+    public class JobEventManager( IHubContext<JobSignalRHub> hubContext, ILogger<JobEventManager> logger)
     {
-        private readonly IHubContext<JobSignalRHub> _hubContext = hubContext;
+        private readonly IHubContext<JobSignalRHub> _hubContext  = hubContext;
+        private readonly ILogger<JobEventManager> _logger  = logger;
 
         public async Task SendJobsToWorkerService(List<Job> jobs)
         {
@@ -16,7 +17,8 @@ namespace MainServer.Managers
 
         public async Task SendJobStatusUpdateToJobsApp(List<Guid> jobIds, JobStatus jobStatus)
         {
-            var statusPayload = new { JobIds = jobIds, JobStatus = jobStatus };
+            object statusPayload = new { JobIds = jobIds, JobStatus = jobStatus };
+
             await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobStatus, statusPayload);
         }
 
@@ -27,7 +29,24 @@ namespace MainServer.Managers
 
         private async Task SendEvent(SystemService service, JobEvent jobEvent, object payload)
         {
-            await _hubContext.Clients.Group(service.ToString()).SendAsync(jobEvent.ToString(), payload);
+            string serviceToSend = service.ToString();
+            string eventName = jobEvent.ToString();
+
+            _logger.LogDebug("Sending '{Event}' to '{Service}'", eventName, serviceToSend);
+
+            try
+            {
+                await _hubContext
+                    .Clients
+                    .Group(serviceToSend)
+                    .SendAsync(eventName, payload);
+
+                _logger.LogDebug("Sent '{Event}' to '{Service}' successfully", eventName, serviceToSend);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending '{Event}' to '{Service}'", eventName, serviceToSend);
+            }
         }
     }
 }

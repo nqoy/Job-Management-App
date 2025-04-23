@@ -1,6 +1,6 @@
 ﻿using JobsClassLibrary.Classes;
 using JobsClassLibrary.Utils;
-using MainServer.DB;
+using MainServer.Classes;
 using MainServer.Handlers;
 using MainServer.Hubs;
 using MainServer.Managers;
