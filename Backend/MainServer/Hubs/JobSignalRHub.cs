@@ -26,7 +26,6 @@ namespace MainServer.Hubs
                 _logger.LogError("serviceName is null on hub connection");
                 throw new ArgumentNullException(nameof(serviceName), "Service name is required for the connection.");
             }
-
             if (!_serviceNames.Contains(serviceName))
             {
                 _logger.LogError($"serviceName '{serviceName}' is not in the list of system services.");
@@ -51,46 +50,45 @@ namespace MainServer.Hubs
             if (serviceName == null)
             {
                 _logger.LogError("serviceName is null on hub disconnection");
-                return;  // Return early if the serviceName is null
+                return; 
             }
-
             var logBuilder = new StringBuilder();
 
-            // Log client disconnection details
             logBuilder.AppendFormat("Client [{0}] DISCONNECTED, id : {1} .", serviceName, connectionId);
-
             if (exception != null)
             {
                 logBuilder.AppendFormat(" Disconnection reason: {0}", exception.Message);
             }
-
-            // Log the information to the logger
             _logger.LogInformation(logBuilder.ToString());
-
-            // Optionally, remove the client from the group if needed
             await Groups.RemoveFromGroupAsync(connectionId, serviceName);
-
             await base.OnDisconnectedAsync(exception);
         }
 
         public async Task HandleEvent(string eventType, object payload)
         {
+            string? serviceName = Context.GetHttpContext()?.Request.Query["service"].ToString()
+                                  ?? $"UnknownService with id : {Context.ConnectionId}";
+
             _logger.LogDebug(
-                "Received event '{EventType}' from client {ConnectionId} with payload: {@Payload}",
-                eventType, Context.ConnectionId, payload);
+                "Received event '{EventType}' from service '{ServiceName}' with payload: {@Payload}",
+                eventType, serviceName, payload);
 
             try
             {
                 await _jobEventListener.HandleEventAsync(eventType, payload);
-                _logger.LogDebug("Handled event '{EventType}' successfully.", eventType);
+
+                _logger.LogDebug(
+                    "Handled event '{EventType}' from service '{ServiceName}' successfully.",
+                    eventType, serviceName);
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Error handling event '{EventType}' from client {ConnectionId}.",
-                    eventType, Context.ConnectionId);
+                    "Error handling event '{EventType}' from service '{ServiceName}'.",
+                    eventType, serviceName);
             }
         }
+
     }
 }
