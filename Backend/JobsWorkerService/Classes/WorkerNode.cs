@@ -3,45 +3,69 @@ using JobsClassLibrary.Enums;
 
 namespace JobsWorkerService.Classes
 {
-    public class WorkerNode(SignalRNotifier signalRNotifier, CancellationToken cancellationToken)
+    public class WorkerNode
     {
-        private readonly CancellationToken _cancellationToken = cancellationToken;
-        private readonly SignalRNotifier _signalRNotifier = signalRNotifier;
-        private Job? _currentJob;
+        public bool IsAvailable => currentJob == null;
+        public string NodeID { get; } = $"WORKER_{Guid.NewGuid()}";
+        private readonly SignalRNotifier _signalRNotifier;
+        private readonly ILogger<WorkerNode> _logger;
+        private readonly CancellationToken _cancellationToken;
+        private Job? currentJob;
 
-        public bool IsAvailable => _currentJob == null;
+        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, CancellationToken cancellationToken)
+        {
+            _signalRNotifier = signalRNotifier;
+            _logger = logger;
+            _cancellationToken = cancellationToken;
+            _logger.LogInformation("Worker {NodeID} created.", NodeID);
+        }
 
-        public void ProcessJobs(JobQueue jobQueue)
+        public void ProcessJobs()
         {
             while (!_cancellationToken.IsCancellationRequested)
             {
-                if (_currentJob != null)
+                if (currentJob != null)
                 {
-                    Console.WriteLine($"Processing job {_currentJob.JobID}");
+                    _logger.LogInformation("Worker {NodeID} processing job {JobID}", NodeID, currentJob.JobID);
+                    try
+                    {
+                        _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Running).Wait(_cancellationToken);
+                        _logger.LogDebug("Worker {NodeID} reported RUNNING for job {JobID}", NodeID, currentJob.JobID);
 
-                    // Report job started
-                    _signalRNotifier.NotifyJobStatus(_currentJob.JobID, JobStatus.Running).Wait();
+                        Thread.Sleep(5000);  // Work Proccess Simulation
 
-                    Thread.Sleep(5000); // Simulate processing
-
-                    // Report job completed
-                    _signalRNotifier.NotifyJobStatus(_currentJob.JobID, JobStatus.Completed).Wait();
-
-                    _currentJob = null;
+                        _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Completed).Wait(_cancellationToken);
+                        _logger.LogInformation("Worker {NodeID} reported COMPLETED for job {JobID}", NodeID, currentJob.JobID);
+                    }
+                    catch (Exception ex)
+                    {
+                        try
+                        {
+                            _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Failed).Wait(_cancellationToken);
+                            _logger.LogWarning("Worker {NodeID} reported FAILED for job {JobID}", NodeID, currentJob.JobID);
+                        }
+                        catch (Exception notifyEx)
+                        {
+                            _logger.LogError(notifyEx, "Worker {NodeID} failed to report FAILED for job {JobID}", NodeID, currentJob.JobID);
+                        }
+                        _logger.LogError(ex, "Worker {NodeID} encountered an error while processing job {JobID}", NodeID, currentJob.JobID);
+                    }
+                    currentJob = null;
                 }
-
                 Thread.Sleep(100);
             }
+            _logger.LogInformation("Worker {NodeID} received cancellation and is stopping.", NodeID);
         }
 
         public void AssignJob(Job job)
         {
-            _currentJob = job;
+            currentJob = job;
+            _logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
         }
 
         public void Stop()
         {
-            Console.WriteLine("Worker stopping.");
+            _logger.LogInformation("Worker {NodeID} stop requested.", NodeID);
         }
     }
 }

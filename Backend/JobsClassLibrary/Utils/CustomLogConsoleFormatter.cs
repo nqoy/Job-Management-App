@@ -4,8 +4,13 @@ using Microsoft.Extensions.Logging.Console;
 
 namespace JobsClassLibrary.Utils
 {
-    public class CustomConsoleFormatter() : ConsoleFormatter("Custom")
+    public class CustomConsoleFormatter : ConsoleFormatter
     {
+        public const string FormatterName = "Custom";
+
+        public CustomConsoleFormatter() : base(FormatterName)
+        {
+        }
         public override void Write<TState>(in LogEntry<TState> logEntry,IExternalScopeProvider? scopeProvider, TextWriter textWriter)
         {
             string time = DateTime.UtcNow.ToString("dd-MM-yy HH:mm:ss");

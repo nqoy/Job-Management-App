@@ -1,15 +1,18 @@
 ﻿using JobsClassLibrary.Classes;
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
+using JobsWorkerService.Managers;
 
 namespace JobsWorkerService.Handlers
 {
     internal class ClientEventHandler
     {
         private readonly SignalRClient _signalRClient;
+        private readonly JobQueueManager _jobQueueManager;
 
-        public ClientEventHandler(SignalRClient signalRClient)
+        public ClientEventHandler(SignalRClient signalRClient, JobQueueManager jobQueueManager)
         {
+            _jobQueueManager = jobQueueManager;
             _signalRClient = signalRClient;
 
             _signalRClient.OnJobReceived(HandleJobsReceived);
@@ -20,7 +23,10 @@ namespace JobsWorkerService.Handlers
         private void HandleJobsReceived(List<Job> jobs)
         {
             Console.WriteLine($"Received {jobs.Count} jobs");
-            // Process the jobs
+            foreach (Job job in jobs)
+            {
+            _jobQueueManager.AddJobToQueue(job);
+            }
         }
 
         private void HandleStopJobs(List<Guid> jobIds)
@@ -33,11 +39,6 @@ namespace JobsWorkerService.Handlers
         {
             Console.WriteLine($"Updating {jobIds.Count} jobs to status: {status}");
             // Update job status
-        }
-
-        public async Task ConnectAsync()
-        {
-            await _signalRClient.StartAsync();
         }
     }
 }

@@ -5,7 +5,6 @@ using MainServer.Handlers;
 using MainServer.Hubs;
 using MainServer.Managers;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 
 namespace MainServer.Initialization
@@ -18,17 +17,17 @@ namespace MainServer.Initialization
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // Add logging
+            // Register Custom Log Formatter
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();
-                builder.Services.Configure<ConsoleFormatterOptions>("Custom", options =>
+                builder.Services.Configure<ConsoleFormatterOptions>(CustomConsoleFormatter.FormatterName, options =>
                 {
                     options.IncludeScopes = true;
                 });
                 logging.AddConsole(options =>
                 {
-                    options.FormatterName = "Custom";
+                    options.FormatterName = CustomConsoleFormatter.FormatterName;
                 });
                 logging.AddConsoleFormatter<CustomConsoleFormatter, ConsoleFormatterOptions>();
             });
