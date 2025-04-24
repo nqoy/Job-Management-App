@@ -77,7 +77,7 @@ namespace JobsWorkerService.Managers
             {
                 WorkerNode node = _workerFactory.Create(_token);
                 _workerPool.Add(node);
-                Task.Run(node.ProcessJobs, _token);
+                Task.Run(node.ProcessJobsAsync, _token);
             }
         }
 
@@ -165,7 +165,7 @@ namespace JobsWorkerService.Managers
             WorkerNode workerNode = _workerFactory.Create(_token);
 
             _workerPool.Add(workerNode);
-            Task.Run(workerNode.ProcessJobs, _token);
+            Task.Run(workerNode.ProcessJobsAsync, _token);
             _logger.LogInformation("Scaling up: New worker added. Total: {Count}.", _workerPool.Count);
         }
 

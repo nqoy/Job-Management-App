@@ -7,5 +7,6 @@ namespace JobsClassLibrary.Enums
         UpdateJobStatus,
         JobRecived,
         StopJob,
+        UpdateJobProgerss,
     }
 }

@@ -19,6 +19,17 @@ namespace JobsWorkerService.Classes
             await sendEvent(JobEvent.UpdateJobStatus, payload);
         }
 
+        internal async Task NotifyJobProgress(Guid jobID, int jobProgress)
+        {
+            object payload = new
+            {
+                JobID = jobID,
+                Progress = jobProgress
+            };
+
+            await sendEvent(JobEvent.UpdateJobProgerss, payload);
+        }
+
         private async Task sendEvent(JobEvent eventType, object payload)
         {
             try

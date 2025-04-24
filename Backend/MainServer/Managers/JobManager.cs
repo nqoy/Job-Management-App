@@ -269,8 +269,7 @@ namespace MainServer.Managers
             }
         }
 
-
-        internal async Task UpdateJobStatusAsync(Guid jobID, JobStatus jobStatus)
+        internal async Task UpdateJobStatusAsync(Guid jobID, JobStatus newJobStatus)
         {
             Job? job;
 
@@ -290,7 +289,7 @@ namespace MainServer.Managers
                 throw new InvalidOperationException($"Job {jobID} not found.");
             }
 
-            switch (jobStatus)
+            switch (newJobStatus)
             {
                 case JobStatus.Running:
                     job.MarkStarted();
@@ -300,7 +299,7 @@ namespace MainServer.Managers
                     job.MarkCompleted();
                     break;
                 default:
-                    job.Status = jobStatus;
+                    job.Status = newJobStatus;
                     break;
             }
 
@@ -309,11 +308,33 @@ namespace MainServer.Managers
                 await _db.SaveChangesAsync();
                 // await _eventManager.SendJobStatusUpdateToJobsApp(jobID, jobStatus);
 
-                _logger.LogDebug("Updated status of job [{JobId}] to [{JobStatus}].", jobID, jobStatus);
+                _logger.LogDebug("Updated status of job [{JobId}] to [{JobStatus}].", jobID, newJobStatus);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to update job [{JobId}] status.", jobID);
+                throw;
+            }
+        }
+
+        internal async Task UpdateJobProgressAsync(Guid jobID, int jobProgress)
+        {
+            throw new NotImplementedException(); //Broeadcast to Front. save only on status update
+        }
+
+        internal async Task<int> DeleteJobsByStatusAsync(JobStatus status)
+        {
+            try
+            {
+                int deletedCount = await _db.Jobs
+                    .Where(job => job.Status == status)
+                    .ExecuteDeleteAsync();
+
+                return deletedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting jobs with status {Status}.", status);
                 throw;
             }
         }
