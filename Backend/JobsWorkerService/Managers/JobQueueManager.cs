@@ -12,21 +12,23 @@ namespace JobsWorkerService.Managers
         private readonly WorkerNodeFactory _workerFactory;
         private readonly JobQueue _jobQueue = new();
         private readonly CancellationToken _token;
+        private readonly SignalRNotifier _signalRNotifier;
 
+        private long _lastScaleTime = 0;
         private readonly int _maxWorkers;
         private readonly int _minWorkers;
         private readonly int _scaleCooldownSeconds;
         private readonly int _jobsToWorkerRatioThreshold;
-        private long _lastScaleTime = 0;
+        private readonly int _sendQueueIntervalSeconds;
         private readonly ILogger<JobQueueManager> _logger;
         private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
 
-        public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger)
+        public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger, SignalRNotifier signalRNotifier)
         {
             _token = _cancellationTokenSource.Token;
+            _signalRNotifier = signalRNotifier;
             _workerFactory = workerFactory;
             _logger = logger;
-
             var strinBuilder = new StringBuilder("JobQueueManager configuration:");
 
             void ReadSetting(string settingName, ref int fieldValue, int defaultValue)
@@ -49,9 +51,11 @@ namespace JobsWorkerService.Managers
             ReadSetting("MinWorkers", ref _minWorkers, 10);
             ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
             ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
+            ReadSetting("SendRecoveryQueueIntervalSeconds", ref _sendQueueIntervalSeconds, 30);
             _logger.LogInformation(strinBuilder.ToString());
 
             startQueue();
+            startPeriodicSendQueue();
         }
 
         private void startQueue()
@@ -59,6 +63,19 @@ namespace JobsWorkerService.Managers
             startInitialWorkerNodes();
             Task.Run(assignAndScaleLoop);
         }
+
+        private void startPeriodicSendQueue()
+        {
+            Task.Run(async () =>
+            {
+                while (!_token.IsCancellationRequested)
+                {
+                    await Task.Delay(_sendQueueIntervalSeconds * 1000, _token);
+                    await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
+                }
+            }, _token);
+        }
+        
 
         public void AddJobToQueue(QueuedJob job)
         {
@@ -79,14 +96,6 @@ namespace JobsWorkerService.Managers
                 _workerPool.Add(node);
                 Task.Run(node.ProcessJobsAsync, _token);
             }
-        }
-
-        public void StopAllWorkerNodes()
-        {
-            _logger.LogInformation("Stopping all worker nodes.");
-            _cancellationTokenSource.Cancel();
-            foreach (var node in _workerPool)
-                node.Stop();
         }
 
         private async Task assignAndScaleLoop()
@@ -175,9 +184,14 @@ namespace JobsWorkerService.Managers
                 return;
             WorkerNode workerNode = _workerPool.Last();
 
-            workerNode.Stop();
+            _ = workerNode.StopJob();
             _workerPool.Remove(workerNode);
             _logger.LogInformation("Scaling down: Worker {WorkerId} removed. Total: {Count}.", workerNode.NodeID, _workerPool.Count);
+        }
+
+        internal void RecoverJobQueue(string serializedQueue)
+        {
+            _jobQueue.RecoverQueue(serializedQueue);
         }
     }
 }

@@ -82,9 +82,24 @@ namespace JobsWorkerService.Classes
             _logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
         }
 
-        public void Stop()
+        public async Task StopJob()
         {
-            _logger.LogDebug("Worker {NodeID} stop requested.", NodeID);
+            if (currentJob != null)
+            {
+                _logger.LogDebug("Worker {NodeID} stop requested for job {JobID}. Status: {Status}, Progress: {Progress}%",
+                                 NodeID, currentJob.JobID, currentJob.Status, currentJob.Progress);
+
+                await _signalRNotifier.NotifyJobProgress(currentJob.JobID, currentJob.Progress);
+                await _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Stopped);
+                currentJob = null;
+            }
+            else
+            {
+                _logger.LogDebug("Worker {NodeID} stop requested, but no job is currently assigned. Stopping.", NodeID);
+            }
+            _cancellationToken.ThrowIfCancellationRequested();
+
+            _logger.LogDebug("Worker {NodeID} has been stopped.", NodeID);
         }
     }
 }

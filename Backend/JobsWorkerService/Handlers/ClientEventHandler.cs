@@ -2,6 +2,7 @@
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
 using JobsWorkerService.Managers;
+using Microsoft.Extensions.Logging;
 
 namespace JobsWorkerService.Handlers
 {
@@ -24,9 +25,9 @@ namespace JobsWorkerService.Handlers
         {
             var eventHandlers = new List<(string EventName, Delegate Handler)>
             {
-                (JobEvent.UpdateJobStatus.ToString(), handleJobStatusUpdate),
+                (JobEvent.RecoverJobQueue.ToString(), handleRecoverJobQueue),
                 (JobEvent.JobRecived.ToString(), handleJobsReceived),
-                (JobEvent.StopJob.ToString(), handleStopJobs),
+                (JobEvent.StopJob.ToString(), handleStopJob),
             };
 
             foreach (var (eventName, handler) in eventHandlers)
@@ -61,18 +62,18 @@ namespace JobsWorkerService.Handlers
             }
         }
 
-        private void handleStopJobs(List<Guid> jobIds)
+        private void handleStopJob(Guid jobID)
         {
-            _logger.LogInformation("Received stop request for {StopCount} jobs", jobIds.Count);
+            _logger.LogInformation("Received stop request for {jobID} job", jobID);
 
             // Stop the jobs
         }
 
-        private void handleJobStatusUpdate(List<Guid> jobIds, JobStatus status)
+        private void handleRecoverJobQueue(string serializedQueue)
         {
             _logger.LogInformation("Received status update for {UpdateCount} jobs → {Status}", jobIds.Count, status);
 
-            // Update job status
+            _jobQueueManager.RecoverJobQueue(serializedQueue);
         }
     }
 }

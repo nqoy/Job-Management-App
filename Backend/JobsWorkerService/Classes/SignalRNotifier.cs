@@ -30,6 +30,12 @@ namespace JobsWorkerService.Classes
             await sendEvent(JobEvent.UpdateJobProgerss, payload);
         }
 
+        internal async Task SendRecoverJobQueue(string serializedQueue)
+        {
+           
+            await sendEvent(JobEvent.RecoverJobQueue, serializedQueue);
+        }
+
         private async Task sendEvent(JobEvent eventType, object payload)
         {
             try
