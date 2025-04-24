@@ -11,7 +11,7 @@ namespace JobsClassLibrary.Classes
         public long CompletedAt { get; set; }
         public int Progress { get; set; }
 
-        public Job(){}
+        public Job() { }
 
         public void UpdateProgress(int progress)
         {
@@ -30,6 +30,13 @@ namespace JobsClassLibrary.Classes
             CompletedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Status = JobStatus.Completed;
             Progress = 100;
+        }
+
+        public void MarkRestarted()
+        {
+            Status = JobStatus.Pending;
+            StartedAt = 0;
+            Progress = 0;
         }
     }
 }

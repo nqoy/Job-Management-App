@@ -50,7 +50,7 @@ namespace JobsWorkerService.Classes
                         }
                         _logger.LogError(ex, "Worker {NodeID} encountered an error while processing job {JobID}", NodeID, currentJob.JobID);
                     }
-                    currentJob = null; 
+                    currentJob = null;
                 }
                 Thread.Sleep(100);
             }

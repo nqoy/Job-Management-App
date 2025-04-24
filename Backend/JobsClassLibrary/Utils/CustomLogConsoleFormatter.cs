@@ -11,7 +11,7 @@ namespace JobsClassLibrary.Utils
         public CustomConsoleFormatter() : base(FormatterName)
         {
         }
-        public override void Write<TState>(in LogEntry<TState> logEntry,IExternalScopeProvider? scopeProvider, TextWriter textWriter)
+        public override void Write<TState>(in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter)
         {
             string time = DateTime.UtcNow.ToString("dd-MM-yy HH:mm:ss");
             string levelName = logEntry.LogLevel.ToString();

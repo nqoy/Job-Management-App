@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace MainServer.Managers
 {
-    public class JobEventManager( IHubContext<JobSignalRHub> hubContext, ILogger<JobEventManager> logger)
+    public class JobEventManager(IHubContext<JobSignalRHub> hubContext, ILogger<JobEventManager> logger)
     {
-        private readonly IHubContext<JobSignalRHub> _hubContext  = hubContext;
-        private readonly ILogger<JobEventManager> _logger  = logger;
+        private readonly IHubContext<JobSignalRHub> _hubContext = hubContext;
+        private readonly ILogger<JobEventManager> _logger = logger;
 
         public async Task SendJobsToWorkerService(List<Job> jobs)
         {

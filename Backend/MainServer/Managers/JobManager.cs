@@ -32,19 +32,16 @@ namespace MainServer.Managers
             {
                 _db.Jobs.Add(job);
                 await _db.SaveChangesAsync();
-
                 _logger.LogDebug("Created job {JobId} (Name: {JobName}, Priority: {Priority})",
                     job.JobID, job.Name, job.Priority);
+                await _eventManager.SendJobsToWorkerService([job]);
 
-                List<Job> singleJobList = [job];
-
-                await _eventManager.SendJobsToWorkerService(singleJobList);
 
                 return job;
             }
             catch (Exception ex)
             {
-                _logger.LogError( ex, "Failed to create job with name '{JobName}' and priority {Priority}.",
+                _logger.LogError(ex, "Failed to create job with name '{JobName}' and priority {Priority}.",
                     name, priority);
 
                 return null;
@@ -85,8 +82,6 @@ namespace MainServer.Managers
 
                 List<Job> jobs = await jobsQuery.ToListAsync();
 
-                _logger.LogDebug("Retrieved {Count} jobs.", jobs.Count);
-
                 return jobs;
             }
             catch (Exception ex)
@@ -96,7 +91,7 @@ namespace MainServer.Managers
                     "Error fetching jobs. OrderBy: {OrderBy}, FilterStatus: {FilterStatus}",
                     orderBy,
                     filterStatus?.ToString() ?? "None");
-                return null;
+                throw;
             }
         }
 
@@ -139,9 +134,10 @@ namespace MainServer.Managers
             }
         }
 
-        public async Task<bool> StopJobAsync(Guid jobID)
+        public async Task<ApiResponse> StopJobAsync(Guid jobID)
         {
             Job? job;
+            string message;
 
             try
             {
@@ -149,34 +145,66 @@ namespace MainServer.Managers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error querying job {JobId} for stop.", jobID);
-                return false;
-            }
+                message = "Database error while looking up job.";
+                _logger.LogError(ex, " Database error while looking up JobId: {JobId}", jobID);
 
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = message
+                };
+            }
             if (job == null)
             {
+                message = $"Job {jobID} not found.";
                 _logger.LogWarning("Attempted to stop job {JobId}, but it was not found.", jobID);
-                return false;
+
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = message
+                };
             }
+            if (job.Status != JobStatus.Running && job.Status != JobStatus.InQueue)
+            {
+                message = $"Cannot stop job {jobID} as its status is {job.Status} and not in process.";
+                _logger.LogWarning("Attempted to stop job {JobId}, but it is not in process.", jobID);
 
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = message
+                };
+            }
             job.Status = JobStatus.Stopped;
-
             try
             {
                 await _eventManager.SendStopJobToWorkerService(jobID);
                 await _db.SaveChangesAsync();
 
+                message = $"Job {jobID} successfully stopped.";
                 _logger.LogDebug("Stopped job {JobId}.", jobID);
-                return true;
+
+                return new ApiResponse
+                {
+                    IsSuccess = true,
+                    Message = message
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to stop job {JobId}.", jobID);
-                return false;
+                message = "Error sending stop command or saving changes.";
+                _logger.LogError(ex, message + " JobId: {JobId}", jobID);
+
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = message
+                };
             }
         }
 
-        public async Task<bool> RestartJobAsync(Guid jobID)
+        public async Task<ApiResponse> RestartJobAsync(Guid jobID)
         {
             Job? job;
 
@@ -187,35 +215,60 @@ namespace MainServer.Managers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error querying job {JobId} for restart.", jobID);
-                return false;
+
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = "Database error while looking up job."
+                };
             }
             if (job == null)
             {
                 _logger.LogWarning("Attempted to restart job {JobId}, but it was not found.", jobID);
-                return false;
-            }
-            job.Status = JobStatus.Pending;
-            job.Progress = 0;
-            job.StartedAt = -1;
-            job.CompletedAt = -1;
 
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = $"Job {jobID} not found."
+                };
+            }
+            if (job.Status != JobStatus.Failed && job.Status != JobStatus.Stopped)
+            {
+                _logger.LogWarning("Attempted to restart job {JobId}, but its status is {Status}.",
+                    jobID, job.Status);
+
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = $"Cannot restart job {jobID} because its status is {job.Status}."
+                };
+            }
+            job.MarkRestarted();
             try
             {
                 await _db.SaveChangesAsync();
-
-                List<Job> restartList = [job];
-
-                await _eventManager.SendJobsToWorkerService(restartList);
+                await _eventManager.SendJobsToWorkerService([job]);
 
                 _logger.LogDebug("Restarted job {JobId}.", jobID);
-                return true;
+
+                return new ApiResponse
+                {
+                    IsSuccess = true,
+                    Message = $"Job {jobID} successfully restarted.",
+                };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to restart job {JobId}.", jobID);
-                return false;
+
+                return new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = "Error sending restart command or saving changes."
+                };
             }
         }
+
 
         internal async Task UpdateJobStatusAsync(Guid jobID, JobStatus jobStatus)
         {

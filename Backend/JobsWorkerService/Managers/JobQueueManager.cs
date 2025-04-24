@@ -50,7 +50,7 @@ namespace JobsWorkerService.Managers
             ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
             ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
             _logger.LogInformation(strinBuilder.ToString());
-            
+
             startQueue();
         }
 
@@ -77,7 +77,7 @@ namespace JobsWorkerService.Managers
             {
                 WorkerNode node = _workerFactory.Create(_token);
                 _workerPool.Add(node);
-                Task.Run( node.ProcessJobs, _token);
+                Task.Run(node.ProcessJobs, _token);
             }
         }
 
@@ -85,7 +85,7 @@ namespace JobsWorkerService.Managers
         {
             _logger.LogInformation("Stopping all worker nodes.");
             _cancellationTokenSource.Cancel();
-            foreach (var node in _workerPool) 
+            foreach (var node in _workerPool)
                 node.Stop();
         }
 
@@ -160,7 +160,7 @@ namespace JobsWorkerService.Managers
 
         private void addNewWorker()
         {
-            if (_workerPool.Count >= _maxWorkers) 
+            if (_workerPool.Count >= _maxWorkers)
                 return;
             WorkerNode workerNode = _workerFactory.Create(_token);
 
@@ -171,7 +171,7 @@ namespace JobsWorkerService.Managers
 
         private void removeWorker()
         {
-            if (_workerPool.Count <= _minWorkers) 
+            if (_workerPool.Count <= _minWorkers)
                 return;
             WorkerNode workerNode = _workerPool.Last();
 

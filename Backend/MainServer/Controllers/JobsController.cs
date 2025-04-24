@@ -52,7 +52,7 @@ namespace MainServer.Controllers
             {
                 List<Job>? jobs = await _jobManager.GetJobsAsync();
 
-                _logger.LogInformation("Successfully retrieved jobs. Jobs count: {JobCount}", jobs?.Count);
+                _logger.LogDebug("Successfully retrieved jobs. Jobs count: {JobCount}", jobs?.Count);
 
                 return Ok(jobs);
             }
@@ -80,7 +80,7 @@ namespace MainServer.Controllers
 
                 if (isSuccess)
                 {
-                    _logger.LogInformation("Job deleted successfully. JobID: {JobID}", guid);
+                    _logger.LogDebug("Job deleted successfully. JobID: {JobID}", guid);
 
                     return Ok();
                 }
@@ -108,23 +108,23 @@ namespace MainServer.Controllers
 
                 return BadRequest("Invalid JobID format");
             }
-
             try
             {
-                bool isSuccess = await _jobManager.StopJobAsync(guid);
+                ApiResponse response = await _jobManager.StopJobAsync(guid);
 
-                if (isSuccess)
+                if (response.IsSuccess)
                 {
-                    _logger.LogInformation("Job stopped successfully. JobID: {JobID}", guid);
+                    _logger.LogDebug("Job stopped successfully. JobID: {JobID}", guid);
 
-                    return Ok();
+                    return Ok(response);
                 }
-                else
-                {
-                    _logger.LogWarning("Job not found for stopping. JobID: {JobID}", guid);
+                if (response.Message?.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return NotFound(response);
 
-                    return NotFound();
-                }
+                if (response.Message?.IndexOf("cannot stop job", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return Conflict(response);
+
+                return StatusCode(500, response);
             }
             catch (Exception ex)
             {
@@ -137,36 +137,49 @@ namespace MainServer.Controllers
         [HttpPost("{jobID}/restart")]
         public async Task<IActionResult> RestartJob(string jobID)
         {
-            if (!Guid.TryParse(jobID, out Guid guid))
+            if (!Guid.TryParse(jobID, out var guid))
             {
-                _logger.LogWarning("Bad request: Invalid JobID format. Provided JobID: {JobID}", jobID);
+                _logger.LogWarning("Bad request: Invalid JobID format. Provided JobID: {JobID}",
+                    jobID);
 
-                return BadRequest("Invalid JobID format");
+                return BadRequest(new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = "Invalid JobID format."
+                });
             }
+
+            ApiResponse response;
 
             try
             {
-                bool isSuccess = await _jobManager.RestartJobAsync(guid);
-
-                if (isSuccess)
-                {
-                    _logger.LogInformation("Job restarted successfully. JobID: {JobID}", guid);
-
-                    return Ok();
-                }
-                else
-                {
-                    _logger.LogWarning("Job not found for restarting. JobID: {JobID}", guid);
-
-                    return NotFound();
-                }
+                response = await _jobManager.RestartJobAsync(guid);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error restarting job. JobID: {JobID}", guid);
+                _logger.LogError(ex, "Unexpected error restarting job. JobID: {JobID}", guid);
 
-                return StatusCode(500, "An error occurred while restarting the job.");
+                return StatusCode(500, new ApiResponse
+                {
+                    IsSuccess = false,
+                    Message = "An unexpected error occurred while restarting the job."
+                });
             }
+
+            if (response.IsSuccess)
+            {
+                _logger.LogDebug("Job restarted successfully. JobID: {JobID}", guid);
+
+                return Ok(response);
+            }
+
+            if (response.Message!.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                return NotFound(response);
+
+            if (response.Message!.StartsWith("Cannot restart job", StringComparison.OrdinalIgnoreCase))
+                return Conflict(response);
+
+            return StatusCode(500, response);
         }
     }
 }

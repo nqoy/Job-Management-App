@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using JobsClassLibrary.Enums;
+﻿using JobsClassLibrary.Enums;
 using MainServer.Handlers;
+using Microsoft.AspNetCore.SignalR;
 using System.Text;
 
 namespace MainServer.Hubs
@@ -35,7 +35,7 @@ namespace MainServer.Hubs
             var logBuilder = new StringBuilder();
 
             await Groups.AddToGroupAsync(connectionId, serviceName);
-            logBuilder.AppendFormat("Client [{0}] CONNECTED, id : {1}", serviceName , connectionId);
+            logBuilder.AppendFormat("Client [{0}] CONNECTED, id : {1}", serviceName, connectionId);
 
             await base.OnConnectedAsync();
 
@@ -50,7 +50,7 @@ namespace MainServer.Hubs
             if (serviceName == null)
             {
                 _logger.LogError("serviceName is null on hub disconnection");
-                return; 
+                return;
             }
             var logBuilder = new StringBuilder();
 
