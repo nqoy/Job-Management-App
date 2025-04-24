@@ -19,8 +19,9 @@ namespace JobsClassLibrary.Utils
             if (levelName.Length > 4)
                 levelName = levelName.Substring(0, 4);
             string message = logEntry.Formatter(logEntry.State, logEntry.Exception);
+            string prefix = $"[{time}]-[{levelName}] :";
 
-            textWriter.WriteLine($"[{time}]-[{levelName}] : {message}");
+            textWriter.WriteLine($"{prefix} {message}");
         }
     }
 }

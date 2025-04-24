@@ -25,7 +25,7 @@ namespace JobsWorkerService.Classes
             {
                 _logger.LogInformation("Invoking event: {EventType} with payload: {Payload}", eventType, payload);
 
-                await _signalRClient.SendEvent(eventType.ToString(), eventType, payload);
+                await _signalRClient.SendEvent(eventType.ToString(), payload);
             }
             catch (Exception ex)
             {

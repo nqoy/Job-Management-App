@@ -18,16 +18,18 @@ namespace JobsClassLibrary.Classes
             Progress = progress;
         }
 
-        public void MarkCompleted()
+        public void MarkStarted()
         {
-            Status = JobStatus.Completed;
-            Progress = 100;
+            StartedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            Status = JobStatus.Running;
+            Progress = 1;
         }
 
-        public void MarkFailed()
+        public void MarkCompleted()
         {
-            Status = JobStatus.Failed;
-            Progress = 0;
+            CompletedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            Status = JobStatus.Completed;
+            Progress = 100;
         }
     }
 }

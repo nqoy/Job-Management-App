@@ -15,16 +15,16 @@ namespace MainServer.Managers
             await SendEvent(SystemService.WorkerService, JobEvent.JobRecived, jobs);
         }
 
-        public async Task SendJobStatusUpdateToJobsApp(List<Guid> jobIds, JobStatus jobStatus)
+        public async Task SendJobStatusUpdateToJobsApp(Guid jobID, JobStatus jobStatus)
         {
-            object statusPayload = new { JobIds = jobIds, JobStatus = jobStatus };
+            object statusPayload = new { JobID = jobID, JobStatus = jobStatus };
 
             await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobStatus, statusPayload);
         }
 
-        public async Task SendStopJobToWorkerService(List<Guid> jobIds)
+        public async Task SendStopJobToWorkerService(Guid jobID)
         {
-            await SendEvent(SystemService.WorkerService, JobEvent.StopJob, jobIds);
+            await SendEvent(SystemService.WorkerService, JobEvent.StopJob, jobID);
         }
 
         private async Task SendEvent(SystemService service, JobEvent jobEvent, object payload)

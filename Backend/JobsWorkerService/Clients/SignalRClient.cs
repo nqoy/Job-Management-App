@@ -1,5 +1,4 @@
 ﻿using JobsClassLibrary.Classes;
-using JobsClassLibrary.Enums;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
 
@@ -59,13 +58,12 @@ namespace JobsWorkerService.Clients
         {
             try
             {
-                _logger.LogDebug("Invoking SignalR event {EventName} with args {Args}", eventName, args);
-                await _connection.InvokeAsync(eventName, args);
+                await _connection.InvokeAsync("HandleEvent", eventName, args);
                 _logger.LogDebug("Successfully invoked SignalR event [{EventName}]", eventName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error invoking SignalR event [{EventName}]", eventName);
+                _logger.LogError(ex, "Error invoking SignalR event [{EventName}], error :\n{Message}", eventName, ex.Message);
                 throw;
             }
         }

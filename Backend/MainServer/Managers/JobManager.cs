@@ -163,9 +163,7 @@ namespace MainServer.Managers
 
             try
             {
-                List<Guid> stopList = [jobID];
-
-                await _eventManager.SendStopJobToWorkerService(stopList);
+                await _eventManager.SendStopJobToWorkerService(jobID);
                 await _db.SaveChangesAsync();
 
                 _logger.LogDebug("Stopped job {JobId}.", jobID);
@@ -219,9 +217,52 @@ namespace MainServer.Managers
             }
         }
 
-        internal async Task UpdateJobStatusAsync(dynamic jobIds, dynamic? jobStatus)
+        internal async Task UpdateJobStatusAsync(Guid jobID, JobStatus jobStatus)
         {
-            throw new NotImplementedException();
+            Job? job;
+
+            try
+            {
+                job = await _db.Jobs.FindAsync(jobID);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error querying job {JobId} for status update.", jobID);
+                throw;
+            }
+
+            if (job == null)
+            {
+                _logger.LogWarning("Attempted to update job {JobId} status, but it was not found.", jobID);
+                throw new InvalidOperationException($"Job {jobID} not found.");
+            }
+
+            switch (jobStatus)
+            {
+                case JobStatus.Running:
+                    job.MarkStarted();
+                    break;
+
+                case JobStatus.Completed:
+                    job.MarkCompleted();
+                    break;
+                default:
+                    job.Status = jobStatus;
+                    break;
+            }
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                // await _eventManager.SendJobStatusUpdateToJobsApp(jobID, jobStatus);
+
+                _logger.LogDebug("Updated status of job [{JobId}] to [{JobStatus}].", jobID, jobStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update job [{JobId}] status.", jobID);
+                throw;
+            }
         }
     }
 }

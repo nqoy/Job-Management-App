@@ -1,5 +1,7 @@
 ﻿using JobsClassLibrary.Enums;
 using MainServer.Managers;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace MainServer.Handlers
 {
@@ -43,17 +45,17 @@ namespace MainServer.Handlers
 
         private async Task HandleUpdateJobStatus(string serviceName, object payload)
         {
-            if (!TryParseStatusPayload(payload, out var jobIds, out var status))
+            if (!TryParseStatusPayload(payload, out Guid jobID, out JobStatus status))
             {
                 _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobStatus.", serviceName);
 
                 return;
             }
 
-            _logger.LogInformation("Service '{Service}' updating status to {Status} for {Count} job(s).",
-                serviceName, status, jobIds.Count);
+            _logger.LogInformation("Service '{Service}' updating status to {Status} for job {Job}.",
+                serviceName, status, jobID);
 
-            await _jobManager.UpdateJobStatusAsync(jobIds, status);
+            await _jobManager.UpdateJobStatusAsync(jobID, status);
         }
 
         private async Task HandleStopJob(string serviceName, object payload)
@@ -69,21 +71,30 @@ namespace MainServer.Handlers
             await _jobManager.StopJobAsync(jobId);
         }
 
-        private bool TryParseStatusPayload(object payload, out List<Guid> jobIds, out JobStatus status)
+        private bool TryParseStatusPayload(object payload, out Guid jobID, out JobStatus status)
         {
-            jobIds = null!;
+            jobID = default;
             status = default;
 
             try
             {
-                dynamic dyn = payload;
-                jobIds = dyn.JobIds.ToObject<List<Guid>>();
-                status = dyn.JobStatus.ToObject<JobStatus>();
-                return jobIds is not null;
+                if (payload is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array)
+                {
+                    if (jsonElement.GetArrayLength() == 0)
+                        return false;
+                    JsonElement payloadJsonObj = jsonElement[0];
+
+                    jobID = payloadJsonObj.GetProperty("jobID").GetGuid();
+                    status = (JobStatus)payloadJsonObj.GetProperty("status").GetInt32();
+
+                    return true;
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse status payload.");
+                _logger.LogError(ex, "Failed to parse UpdateJobStatus payload: {Payload}", payload);
                 return false;
             }
         }
