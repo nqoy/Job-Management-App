@@ -11,9 +11,9 @@ namespace JobsWorkerService.Classes
 
     public class JobQueue
     {
-        private readonly PriorityQueue<Job, (JobPriority, long)> _queue = new();
+        private readonly PriorityQueue<QueuedJob, (JobPriority, long)> _queue = new();
 
-        public void Enqueue(Job job)
+        public void Enqueue(QueuedJob job)
         {
             long queueingTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 

@@ -5,7 +5,22 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "Logging__LogLevel__System": "Information",
+        "Logging__LogLevel__Microsoft": "Information"
+      }
+    },
+    "DebugConsole": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Logging__LogLevel__Default": "Debug",
+        "Logging__LogLevel__System": "Information",
+        "Logging__LogLevel__Microsoft": "Information"
+      },
+      "consoleProfileSettings": {
+        "externalConsole": true
       }
     }
   }

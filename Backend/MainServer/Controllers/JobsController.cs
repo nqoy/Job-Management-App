@@ -33,7 +33,7 @@ namespace MainServer.Controllers
                     return StatusCode(500, "An error occurred while creating the job.");
                 }
 
-                _logger.LogInformation("Job created successfully. Job: {@Job}", job);
+                _logger.LogDebug("Job created successfully. Job: {@Job}", job);
 
                 return Ok(job);
             }

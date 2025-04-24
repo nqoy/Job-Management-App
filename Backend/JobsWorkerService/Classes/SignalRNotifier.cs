@@ -7,6 +7,7 @@ namespace JobsWorkerService.Classes
     {
         private readonly SignalRClient _signalRClient = signalRClient;
         private readonly ILogger<SignalRNotifier> _logger = logger;
+
         public async Task NotifyJobStatus(Guid jobID, JobStatus status)
         {
             object payload = new
@@ -15,16 +16,16 @@ namespace JobsWorkerService.Classes
                 Status = status
             };
 
-            await invokeEvent(JobEvent.UpdateJobStatus, payload);
+            await sendEvent(JobEvent.UpdateJobStatus, payload);
         }
 
-        private async Task invokeEvent(JobEvent eventType, object payload)
+        private async Task sendEvent(JobEvent eventType, object payload)
         {
             try
             {
                 _logger.LogInformation("Invoking event: {EventType} with payload: {Payload}", eventType, payload);
 
-                await _signalRClient.InvokeAsync(eventType.ToString(), eventType, payload);
+                await _signalRClient.SendEvent(eventType.ToString(), eventType, payload);
             }
             catch (Exception ex)
             {

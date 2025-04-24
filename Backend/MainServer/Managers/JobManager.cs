@@ -33,8 +33,7 @@ namespace MainServer.Managers
                 _db.Jobs.Add(job);
                 await _db.SaveChangesAsync();
 
-                _logger.LogDebug(
-                    "Created job {JobId} (Name: {JobName}, Priority: {Priority})",
+                _logger.LogDebug("Created job {JobId} (Name: {JobName}, Priority: {Priority})",
                     job.JobID, job.Name, job.Priority);
 
                 List<Job> singleJobList = [job];

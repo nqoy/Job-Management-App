@@ -15,31 +15,60 @@ namespace JobsWorkerService.Handlers
         {
             _jobQueueManager = jobQueueManager;
             _signalRClient = signalRClient;
-
-            _signalRClient.OnJobReceived(HandleJobsReceived);
-            _signalRClient.OnStopJob(HandleStopJobs);
-            _signalRClient.OnUpdateJobStatus(HandleJobStatusUpdate);
             _logger = logger;
+
+            registerEventHandlers();
         }
 
-        private void HandleJobsReceived(List<Job> jobs)
+        private void registerEventHandlers()
+        {
+            var eventHandlers = new List<(string EventName, Delegate Handler)>
+            {
+                (JobEvent.UpdateJobStatus.ToString(), handleJobStatusUpdate),
+                (JobEvent.JobRecived.ToString(), handleJobsReceived),
+                (JobEvent.StopJob.ToString(), handleStopJobs),
+            };
+
+            foreach (var (eventName, handler) in eventHandlers)
+            {
+                registerHandlerByInputType(eventName, handler);
+            }
+        }
+
+        private void registerHandlerByInputType(string eventName, Delegate handler)
+        {
+            if (handler is Action<List<QueuedJob>> jobHandler)
+            {
+                _signalRClient.RegisterEventHandler(eventName, jobHandler);
+            }
+            else if (handler is Action<List<Guid>> guidHandler)
+            {
+                _signalRClient.RegisterEventHandler(eventName, guidHandler);
+            }
+            else if (handler is Action<List<Guid>, JobStatus> statusHandler)
+            {
+                _signalRClient.RegisterEventHandler(eventName, statusHandler);
+            }
+        }
+
+        private void handleJobsReceived(List<QueuedJob> jobs)
         {
             _logger.LogInformation("Received {JobCount} jobs from SignalR", jobs.Count);
 
-            foreach (Job job in jobs)
+            foreach (QueuedJob job in jobs)
             {
                 _jobQueueManager.AddJobToQueue(job);
             }
         }
 
-        private void HandleStopJobs(List<Guid> jobIds)
+        private void handleStopJobs(List<Guid> jobIds)
         {
             _logger.LogInformation("Received stop request for {StopCount} jobs", jobIds.Count);
 
             // Stop the jobs
         }
 
-        private void HandleJobStatusUpdate(List<Guid> jobIds, JobStatus status)
+        private void handleJobStatusUpdate(List<Guid> jobIds, JobStatus status)
         {
             _logger.LogInformation("Received status update for {UpdateCount} jobs → {Status}", jobIds.Count, status);
 

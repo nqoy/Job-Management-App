@@ -60,7 +60,7 @@ namespace JobsWorkerService.Managers
             Task.Run(assignAndScaleLoop);
         }
 
-        public void AddJobToQueue(Job job)
+        public void AddJobToQueue(QueuedJob job)
         {
             _jobQueue.Enqueue(job);
             _logger.LogDebug("Enqueued job {JobId} with priority {Priority}. Queue size is now {Count}.",
