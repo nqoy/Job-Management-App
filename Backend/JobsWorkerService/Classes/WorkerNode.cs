@@ -26,7 +26,7 @@ namespace JobsWorkerService.Classes
             {
                 if (currentJob != null)
                 {
-                    _logger.LogInformation("Worker {NodeID} processing job {JobID}", NodeID, currentJob.JobID);
+                    _logger.LogDebug("Worker {NodeID} processing job {JobID}", NodeID, currentJob.JobID);
                     try
                     {
                         _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Running).Wait(_cancellationToken);
@@ -35,7 +35,7 @@ namespace JobsWorkerService.Classes
                         Thread.Sleep(5000);  // Work Proccess Simulation
 
                         _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Completed).Wait(_cancellationToken);
-                        _logger.LogInformation("Worker {NodeID} reported COMPLETED for job {JobID}", NodeID, currentJob.JobID);
+                        _logger.LogDebug("Worker {NodeID} reported COMPLETED for job {JobID}", NodeID, currentJob.JobID);
                     }
                     catch (Exception ex)
                     {
@@ -50,11 +50,11 @@ namespace JobsWorkerService.Classes
                         }
                         _logger.LogError(ex, "Worker {NodeID} encountered an error while processing job {JobID}", NodeID, currentJob.JobID);
                     }
-                    currentJob = null;
+                    currentJob = null; 
                 }
                 Thread.Sleep(100);
             }
-            _logger.LogInformation("Worker {NodeID} received cancellation and is stopping.", NodeID);
+            _logger.LogDebug("Worker {NodeID} received cancellation and is stopping.", NodeID);
         }
 
         public void AssignJob(Job job)
@@ -65,7 +65,7 @@ namespace JobsWorkerService.Classes
 
         public void Stop()
         {
-            _logger.LogInformation("Worker {NodeID} stop requested.", NodeID);
+            _logger.LogDebug("Worker {NodeID} stop requested.", NodeID);
         }
     }
 }

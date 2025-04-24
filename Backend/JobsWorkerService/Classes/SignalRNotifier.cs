@@ -3,10 +3,10 @@ using JobsWorkerService.Clients;
 
 namespace JobsWorkerService.Classes
 {
-    public class SignalRNotifier(SignalRClient signalRClient)
+    public class SignalRNotifier(SignalRClient signalRClient, ILogger<SignalRNotifier> logger)
     {
         private readonly SignalRClient _signalRClient = signalRClient;
-
+        private readonly ILogger<SignalRNotifier> _logger = logger;
         public async Task NotifyJobStatus(Guid jobID, JobStatus status)
         {
             object payload = new
@@ -20,7 +20,16 @@ namespace JobsWorkerService.Classes
 
         private async Task invokeEvent(JobEvent eventType, object payload)
         {
-            await _signalRClient.InvokeAsync(eventType.ToString(), eventType, payload);
+            try
+            {
+                _logger.LogInformation("Invoking event: {EventType} with payload: {Payload}", eventType, payload);
+
+                await _signalRClient.InvokeAsync(eventType.ToString(), eventType, payload);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while invoking event: {EventType} with payload: {Payload}", eventType, payload);
+            }
         }
     }
 }

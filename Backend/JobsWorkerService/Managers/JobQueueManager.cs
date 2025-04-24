@@ -158,7 +158,6 @@ namespace JobsWorkerService.Managers
             _lastScaleTime = now;
         }
 
-
         private void addNewWorker()
         {
             if (_workerPool.Count >= _maxWorkers) 

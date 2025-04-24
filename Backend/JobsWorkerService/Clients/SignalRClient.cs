@@ -2,25 +2,24 @@
 using JobsClassLibrary.Enums;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Options;
-
 namespace JobsWorkerService.Clients
 {
     public class SignalRClient
     {
         private readonly HubConnection _connection;
+        private readonly ILogger<SignalRClient> _logger;
         public bool IsConnected => _connection.State == HubConnectionState.Connected;
 
-        public SignalRClient(IOptions<SignalRSettings> settings)
+        public SignalRClient(IOptions<SignalRSettings> settings, ILogger<SignalRClient> logger)
         {
+            _logger = logger;
             string fullHubUrl = settings.Value.FullHubUrl;
 
-            Console.WriteLine($"[SignalRClient] FullHubUrl = {fullHubUrl}");
+            _logger.LogInformation("SignalRClient FullHubUrl={FullHubUrl}", fullHubUrl);
             if (string.IsNullOrEmpty(fullHubUrl))
-            {
-                throw new ArgumentNullException(nameof(settings), "SignalR HubUrl is not configured in the app settings.");
-            }
-            string service = "WorkerService";
-            string connectionUrl = $"{fullHubUrl}?service={service}";
+                throw new ArgumentNullException(nameof(settings), "SignalR HubUrl not configured.");
+
+            string connectionUrl = $"{fullHubUrl}?service=WorkerService";
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(connectionUrl)
@@ -30,9 +29,9 @@ namespace JobsWorkerService.Clients
 
         public async Task StartAsync()
         {
-            Console.WriteLine("[SignalRClient] Starting connection…");
+            _logger.LogInformation("Starting SignalR connection...");
             await _connection.StartAsync();
-            Console.WriteLine("[SignalRClient] Connection State = " + _connection.State);
+            _logger.LogInformation("SignalR Connection State={State}", _connection.State);
         }
 
         public async Task InvokeAsync(string eventName, params object[] args)
@@ -53,11 +52,6 @@ namespace JobsWorkerService.Clients
         public void OnUpdateJobStatus(Action<List<Guid>, JobStatus> handler)
         {
             _connection.On(JobEvent.UpdateJobStatus.ToString(), handler);
-        }
-
-        public async Task DisposeAsync()
-        {
-            await _connection.DisposeAsync();
         }
     }
 }
