@@ -1,5 +1,4 @@
 ﻿using JobsClassLibrary.Classes;
-using JobsClassLibrary.Enums;
 using JobsWorkerService.Classes;
 using JobsWorkerService.Factories;
 using System.Text;
@@ -17,9 +16,9 @@ namespace JobsWorkerService.Managers
         private readonly int _maxWorkers;
         private readonly int _minWorkers;
         private readonly int _scaleCooldownSeconds;
+        private readonly int _jobsToWorkerRatioThreshold;
         private long _lastScaleTime = 0;
         private readonly ILogger<JobQueueManager> _logger;
-
         private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
 
         public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger)
@@ -32,7 +31,7 @@ namespace JobsWorkerService.Managers
 
             void ReadSetting(string settingName, ref int fieldValue, int defaultValue)
             {
-                string? stringValue = configuration[$"WorkerSettings:{settingName}"];
+                string? stringValue = configuration[$"WorkerOptions:{settingName}"];
 
                 if (!int.TryParse(stringValue, out int settingValue))
                 {
@@ -48,6 +47,7 @@ namespace JobsWorkerService.Managers
 
             ReadSetting("MaxWorkers", ref _maxWorkers, 100);
             ReadSetting("MinWorkers", ref _minWorkers, 10);
+            ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
             ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
             _logger.LogInformation(strinBuilder.ToString());
             
@@ -64,12 +64,10 @@ namespace JobsWorkerService.Managers
         {
             _jobQueue.Enqueue(job);
             _logger.LogDebug("Enqueued job {JobId} with priority {Priority}. Queue size is now {Count}.",
-                             job.JobID, job.Priority, _jobQueue.Count);
+                job.JobID, job.Priority, _jobQueue.Count);
 
-            // signal the assign loop immediately
+            // Signal assignAndScaleLoop to stop waiting immediately
             _jobsInQueueSignal.Release();
-
-            scaleWorkers();
         }
 
         private void startInitialWorkerNodes()
@@ -95,13 +93,13 @@ namespace JobsWorkerService.Managers
         {
             while (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                // Wait until there's at least one job enqueued
+                // Wait for at least one job in queue
                 await _jobsInQueueSignal.WaitAsync(_token);
 
                 while (_jobQueue.Count > 0)
                 {
                     assignJobsToAvailableWorkers();
-                    scaleWorkers();
+                    // Minimal delay to avoid excessive CPU usage
                     await Task.Delay(500, _token);
                 }
             }
@@ -114,38 +112,52 @@ namespace JobsWorkerService.Managers
 
             foreach (WorkerNode worker in availableWorkers)
             {
-                if (_jobQueue.Count == 0) break;
+                if (_jobQueue.Count == 0)
+                    break;
                 Job job = _jobQueue.Dequeue();
 
                 worker.AssignJob(job);
                 assignedJobs++;
-                _logger.LogDebug("Assigned job {JobId} to worker {WorkerId}.", job, worker.NodeID);
+                availableWorkers.Remove(worker);
+                _logger.LogDebug("Assigned job {JobId} to worker {WorkerId}.", job.JobID, worker.NodeID);
             }
 
-            if (_jobQueue.Count > 0 && assignedJobs < availableWorkers.Count)
+            if (_jobQueue.Count > 0 || availableWorkers.Count > 0)
             {
-                _logger.LogInformation(
-                    "Jobs remain ({QueueCount}) after assigning {Assigned}/{Workers}. Scaling may be needed.",
+                _logger.LogDebug("Jobs remain ({QueueCount}) after assigning {Assigned}. Available workers: {AvailableWorkers}. Scaling may be needed.",
                     _jobQueue.Count, assignedJobs, availableWorkers.Count);
+
                 scaleWorkers();
             }
         }
 
         private void scaleWorkers()
         {
-            long nowTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-            if (nowTimestamp - _lastScaleTime < _scaleCooldownSeconds) 
+            if (now - _lastScaleTime < _scaleCooldownSeconds)
                 return;
-            int pendingJobCount = _jobQueue.Count, workersCount = _workerPool.Count;
 
-            if (pendingJobCount > 500 && workersCount < _maxWorkers)
+            int pendingJobs = _jobQueue.Count;
+            int workerCount = _workerPool.Count;
+            int currentjobsToWorkerRatio = pendingJobs / (workerCount == 0 ? 1 : workerCount);
+
+            if (currentjobsToWorkerRatio > _jobsToWorkerRatioThreshold && workerCount < _maxWorkers) // Scale Up
+            {
+                _logger.LogDebug("Scaling up: jobs-to-worker ratio ({Ratio}) > threshold ({Threshold}), workers {Workers} < max {MaxWorkers}",
+                    currentjobsToWorkerRatio, _jobsToWorkerRatioThreshold, workerCount, _maxWorkers);
                 addNewWorker();
-            else if (pendingJobCount < 50 && workersCount > _minWorkers)
+            }
+            else if (currentjobsToWorkerRatio < _jobsToWorkerRatioThreshold && workerCount > _minWorkers) // Scale Down
+            {
+                _logger.LogDebug("Scaling down: jobs-to-worker ratio ({Ratio}) < threshold ({Threshold}), workers {Workers} > min {MinWorkers}",
+                    currentjobsToWorkerRatio, _jobsToWorkerRatioThreshold, workerCount, _minWorkers);
                 removeWorker();
+            }
 
-            _lastScaleTime = nowTimestamp;
+            _lastScaleTime = now;
         }
+
 
         private void addNewWorker()
         {
@@ -160,11 +172,12 @@ namespace JobsWorkerService.Managers
 
         private void removeWorker()
         {
-            if (_workerPool.Count <= _minWorkers) return;
+            if (_workerPool.Count <= _minWorkers) 
+                return;
             WorkerNode workerNode = _workerPool.Last();
 
-            _workerPool.Remove(workerNode);
             workerNode.Stop();
+            _workerPool.Remove(workerNode);
             _logger.LogInformation("Scaling down: Worker {WorkerId} removed. Total: {Count}.", workerNode.NodeID, _workerPool.Count);
         }
     }
