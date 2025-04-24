@@ -47,8 +47,8 @@ namespace JobsWorkerService.Managers
 
             ReadSetting("MaxWorkers", ref _maxWorkers, 100);
             ReadSetting("MinWorkers", ref _minWorkers, 10);
-            ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
             ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
+            ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
             _logger.LogInformation(strinBuilder.ToString());
             
             startQueue();
