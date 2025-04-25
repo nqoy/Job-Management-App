@@ -350,7 +350,7 @@ namespace MainServer.Managers
 
         internal async Task SaveQueueBackupData(List<QueuedJob> queuedJobs)
         {
-            if (queuedJobs == null || queuedJobs.Count == 0)
+            if (queuedJobs == null)
             {
                 _logger.LogInformation("No queued jobs to back up.");
                 return;
@@ -397,7 +397,7 @@ namespace MainServer.Managers
 
                 if (queuedJobs == null || queuedJobs.Count == 0)
                 {
-                    _logger.LogInformation("No queued jobs to send.");
+                    _logger.LogDebug("No queued jobs to send.");
                     return;
                 }
                 List<Job> jobsToRun = queuedJobs.Cast<Job>().ToList();

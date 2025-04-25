@@ -14,6 +14,7 @@ namespace JobsWorkerService.Managers
         private readonly JobQueue _jobQueue = new();
         private readonly CancellationToken _token;
         private readonly SignalRNotifier _signalRNotifier;
+        private readonly IHostApplicationLifetime _applicationLifetime;
 
         private long _lastScaleTime = 0;
         private readonly int _maxWorkers;
@@ -24,12 +25,18 @@ namespace JobsWorkerService.Managers
         private readonly ILogger<JobQueueManager> _logger;
         private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
 
-        public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger, SignalRNotifier signalRNotifier)
+        public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger, SignalRNotifier signalRNotifier, IHostApplicationLifetime applicationLifetime)
         {
-            _token = _cancellationTokenSource.Token;
-            _signalRNotifier = signalRNotifier;
-            _workerFactory = workerFactory;
             _logger = logger;
+            _workerFactory = workerFactory;
+            _signalRNotifier = signalRNotifier;
+            _token = _cancellationTokenSource.Token;
+            _applicationLifetime = applicationLifetime;
+            _applicationLifetime.ApplicationStopping.Register(async () =>
+            {
+                await backupQueueAsync();
+            });
+
             var strinBuilder = new StringBuilder("JobQueueManager configuration:");
 
             void ReadSetting(string settingName, ref int fieldValue, int defaultValue)
@@ -52,7 +59,7 @@ namespace JobsWorkerService.Managers
             ReadSetting("MinWorkers", ref _minWorkers, 10);
             ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
             ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerRatioThreshold, 5);
-            ReadSetting("SendRecoveryQueueIntervalSeconds", ref _sendQueueIntervalSeconds, 30);
+            ReadSetting("SendRecoveryQueueIntervalSeconds", ref _sendQueueIntervalSeconds, 10);
             _logger.LogInformation(strinBuilder.ToString());
 
             startQueue();
@@ -72,14 +79,24 @@ namespace JobsWorkerService.Managers
                 while (!_token.IsCancellationRequested)
                 {
                     await Task.Delay(_sendQueueIntervalSeconds * 1000, _token);
-                    if (_jobQueue.Count > 0)
-                    {
-                        await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
-                    }
+
+                    await backupQueueAsync();
                 }
             }, _token);
         }
 
+        private async Task backupQueueAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Backing up job queue...");
+                await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to back up job queue.");
+            }
+        }
 
         public void AddJobToQueue(QueuedJob job)
         {

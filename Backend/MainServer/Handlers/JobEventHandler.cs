@@ -74,6 +74,7 @@ namespace MainServer.Handlers
         {
             if (!PayloadDeserializer.TryParsePayloadDynamic(payload, _logger, out List<QueuedJob>? queuedJobs))
             {
+                // TODO : Handle empty list
                 _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobProgress.", serviceName);
                 return;
             }

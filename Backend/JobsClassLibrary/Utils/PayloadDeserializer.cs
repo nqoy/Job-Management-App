@@ -18,8 +18,14 @@ namespace JobsClassLibrary.Utils
             {
                 if (payload is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array && jsonElement.GetArrayLength() > 0)
                 {
-                    JsonElement payloadJsonObj = jsonElement[0];
+                    // Handle empty List Objcets
+                    if (jsonElement[0].ValueKind == JsonValueKind.String && jsonElement[0].GetString() == "[]")
+                    {
+                        deserializedObject = Activator.CreateInstance<T>();
+                        return true;
+                    }
 
+                    JsonElement payloadJsonObj = jsonElement[0];
                     deserializedObject = JsonSerializer.Deserialize<T>(payloadJsonObj.GetRawText(), options);
 
                     if (deserializedObject == null)
