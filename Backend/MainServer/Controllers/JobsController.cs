@@ -136,7 +136,6 @@ namespace MainServer.Controllers
             }
         }
 
-
         [HttpPost("{jobID}/stop")]
         public async Task<IActionResult> StopJob(string jobID)
         {

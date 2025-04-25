@@ -4,54 +4,96 @@ using Newtonsoft.Json;
 
 namespace JobsWorkerService.Classes
 {
-    /// <summary>
-    /// JobQueue manages jobs using a priority queue, where higher priority jobs are processed first.
-    /// If priorities are equal, jobs are processed in first-come-first-serve (FCFS) order.
-    /// The priority is represented as a tuple of JobPriority (first) & QueuingTime (second).
-    /// </summary>
-    public class JobQueue
+    internal class JobQueue
     {
         private readonly PriorityQueue<QueuedJob, (JobPriority, long)> _queue = new();
+        private readonly HashSet<Guid> _jobsMarkedForRemoval = [];
+        private readonly object _queueLock = new();
 
-        public void Enqueue(QueuedJob job)
+        internal void Enqueue(QueuedJob job)
         {
             job.QueuingTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            _queue.Enqueue(job, (job.Priority, job.QueuingTime));
-        }
-
-        public Job Dequeue()
-        {
-            if (_queue.Count == 0)
-                throw new InvalidOperationException("Queue is empty.");
-
-            return _queue.Dequeue();
-        }
-
-        public int Count => _queue.Count;
-
-        public string Serialize()
-        {
-            return JsonConvert.SerializeObject(_queue.UnorderedItems.Select(item => new
+            lock (_queueLock)
             {
-                item.Element.JobID,
-                item.Element.Priority,
-                item.Element.QueuingTime,
-            }));
+                _queue.Enqueue(job, (job.Priority, job.QueuingTime));
+            }
         }
 
-        public void RecoverQueue(string serializedQueue)
+        internal Job Dequeue()
         {
-            List<QueuedJob> jobs = JsonConvert.DeserializeObject<List<QueuedJob>>(serializedQueue);
-
-            if (jobs != null && jobs.Count > 0)
+            lock (_queueLock)
             {
-                _queue.Clear();
-                foreach (QueuedJob job in jobs)
+                while (_queue.Count > 0)
                 {
-                    _queue.Enqueue(job, (job.Priority, job.QueuingTime));
+                    QueuedJob job = _queue.Dequeue();
+
+                    if (_jobsMarkedForRemoval.Contains(job.JobID))
+                    {
+                        _jobsMarkedForRemoval.Remove(job.JobID);
+                        continue;
+                    }
+
+                    return job;
+                }
+
+                throw new InvalidOperationException("Queue is empty.");
+            }
+        }
+
+        internal int Count
+        {
+            get
+            {
+                lock (_queueLock)
+                {
+                    return _queue.Count;
                 }
             }
         }
 
+        internal string Serialize()
+        {
+            lock (_queueLock)
+            {
+                return JsonConvert.SerializeObject(_queue.UnorderedItems
+                    .Where(item => !_jobsMarkedForRemoval.Contains(item.Element.JobID))
+                    .Select(item => new
+                    {
+                        item.Element.JobID,
+                        item.Element.Priority,
+                        item.Element.QueuingTime
+                    }), Formatting.Indented);
+            }
+        }
+
+        internal void RecoverQueue(List<QueuedJob> jobs)
+        {
+            lock (_queueLock)
+            {
+                if (jobs != null && jobs.Count > 0)
+                {
+                    _queue.Clear();
+                    foreach (QueuedJob job in jobs)
+                    {
+                        _queue.Enqueue(job, (job.Priority, job.QueuingTime));
+                    }
+                }
+            }
+        }
+
+        internal bool MarkJobForLazyRemove(Guid jobID)
+        {
+            lock (_queueLock)
+            {
+                if (_jobsMarkedForRemoval.Contains(jobID))
+                {
+                    return false;
+                }
+
+                _jobsMarkedForRemoval.Add(jobID);
+
+                return true;
+            }
+        }
     }
 }

@@ -3,6 +3,7 @@ using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
 using JobsWorkerService.Managers;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace JobsWorkerService.Handlers
 {
@@ -64,16 +65,24 @@ namespace JobsWorkerService.Handlers
 
         private void handleStopJob(Guid jobID)
         {
-            _logger.LogInformation("Received stop request for {jobID} job", jobID);
-
-            // Stop the jobs
+            _logger.LogInformation("Received stop job event for {jobID} job.", jobID);
+            _jobQueueManager.StopJobAsync(jobID);
         }
 
         private void handleRecoverJobQueue(string serializedQueue)
         {
-            _logger.LogInformation("Received status update for {UpdateCount} jobs → {Status}", jobIds.Count, status);
+            List<QueuedJob> jobs = JsonConvert.DeserializeObject<List<QueuedJob>>(serializedQueue);
 
-            _jobQueueManager.RecoverJobQueue(serializedQueue);
+            if (jobs != null)
+            {
+                _logger.LogInformation("Received status update for {UpdateCount} jobs.", jobs.Count);
+
+                _jobQueueManager.RecoverJobQueue(jobs);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to deserialize the job queue. No jobs were recovered.");
+            }
         }
     }
 }

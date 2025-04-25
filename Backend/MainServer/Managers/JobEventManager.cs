@@ -36,10 +36,7 @@ namespace MainServer.Managers
 
             try
             {
-                await _hubContext
-                    .Clients
-                    .Group(serviceToSend)
-                    .SendAsync(eventName, payload);
+                await _hubContext.Clients.Group(serviceToSend).SendAsync(eventName, payload);
 
                 _logger.LogDebug("Sent '{Event}' to '{Service}' successfully", eventName, serviceToSend);
             }

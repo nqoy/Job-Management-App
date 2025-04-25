@@ -176,10 +176,10 @@ namespace MainServer.Managers
                     Message = message
                 };
             }
-            job.Status = JobStatus.Stopped;
             try
             {
                 await _eventManager.SendStopJobToWorkerService(jobID);
+                job.Status = JobStatus.Stopped;
                 await _db.SaveChangesAsync();
 
                 message = $"Job {jobID} successfully stopped.";

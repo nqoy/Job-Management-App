@@ -71,11 +71,14 @@ namespace JobsWorkerService.Managers
                 while (!_token.IsCancellationRequested)
                 {
                     await Task.Delay(_sendQueueIntervalSeconds * 1000, _token);
-                    await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
+                    if (_jobQueue.Count > 0)
+                    {
+                        await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
+                    }
                 }
             }, _token);
         }
-        
+
 
         public void AddJobToQueue(QueuedJob job)
         {
@@ -184,14 +187,45 @@ namespace JobsWorkerService.Managers
                 return;
             WorkerNode workerNode = _workerPool.Last();
 
-            _ = workerNode.StopJob();
+            workerNode.StopJob();
             _workerPool.Remove(workerNode);
             _logger.LogInformation("Scaling down: Worker {WorkerId} removed. Total: {Count}.", workerNode.NodeID, _workerPool.Count);
         }
 
-        internal void RecoverJobQueue(string serializedQueue)
+        internal void RecoverJobQueue(List<QueuedJob> jobs)
         {
-            _jobQueue.RecoverQueue(serializedQueue);
+            _jobQueue.RecoverQueue(jobs);
+        }
+
+        internal void StopJobAsync(Guid jobID)
+        {
+            WorkerNode? targetWorker = _workerPool.FirstOrDefault(worker => worker.CurrentJob?.JobID == jobID);
+
+            if (targetWorker != null)
+            {
+                lock (targetWorker)
+                {
+                    targetWorker.StopJob();
+                    _logger.LogInformation("Job {JobID} was running and has been requested to stop on worker {WorkerID}.", jobID, targetWorker.NodeID);
+                }
+            }
+            else
+            {
+                bool isMarkedForRemoval;
+
+                lock (_jobQueue)
+                {
+                    isMarkedForRemoval = _jobQueue.MarkJobForLazyRemove(jobID);
+                }
+                if (isMarkedForRemoval)
+                {
+                    _logger.LogInformation("Job {JobID} is marked for removal.", jobID);
+                }
+                else
+                {
+                    _logger.LogWarning("Job {JobID} was not found in the queue for removal.", jobID);
+                }
+            }
         }
     }
 }

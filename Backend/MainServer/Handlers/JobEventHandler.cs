@@ -20,7 +20,6 @@ namespace MainServer.Handlers
             {
                 [nameof(JobEvent.UpdateJobProgerss)] = HandleUpdateJobProgress,
                 [nameof(JobEvent.UpdateJobStatus)] = HandleUpdateJobStatus,
-                [nameof(JobEvent.StopJob)] = HandleStopJob
             };
         }
 
@@ -83,19 +82,6 @@ namespace MainServer.Handlers
             {
                 _logger.LogError(ex, "Failed to update progress for job {JobID} with progress {JobProgress}.", jobID, jobProgress);
             }
-        }
-
-        private async Task HandleStopJob(string serviceName, object payload)
-        {
-            if (payload is not Guid jobId)
-            {
-                _logger.LogWarning("Service '{Service}' sent invalid payload for StopJob.", serviceName);
-
-                return;
-            }
-
-            _logger.LogInformation("Service '{Service}' stopping job {JobId}.", serviceName, jobId);
-            await _jobManager.StopJobAsync(jobId);
         }
 
         private bool TryParseProgressPayload(object payload, out Guid jobID, out int jobProgress)

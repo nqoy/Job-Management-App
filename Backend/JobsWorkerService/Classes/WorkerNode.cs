@@ -1,105 +1,121 @@
 using JobsClassLibrary.Classes;
 using JobsClassLibrary.Enums;
-using System.Threading;
-using System;
+
 
 namespace JobsWorkerService.Classes
 {
     public class WorkerNode
     {
-        public bool IsAvailable => currentJob == null;
+        public bool IsAvailable => CurrentJob == null;
         public string NodeID { get; } = $"WORKER_{Guid.NewGuid()}";
         private readonly SignalRNotifier _signalRNotifier;
         private readonly ILogger<WorkerNode> _logger;
-        private readonly CancellationToken _cancellationToken;
-        private Job? currentJob;
 
-        private readonly Random _random = new(); // MOCK proeccess timer.
-        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, CancellationToken cancellationToken)
+        // Cancellation tokens
+        private readonly CancellationToken _serviceCancellationToken;
+        private CancellationTokenSource? _jobCancellationTokenSource;
+        private CancellationToken jobCancellationToken => _jobCancellationTokenSource?.Token ?? CancellationToken.None;
+
+        public Job? CurrentJob;
+
+        private readonly Random _random = new(); // MOCK process timer.
+
+        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, CancellationToken serviceCancellationToken)
         {
             _signalRNotifier = signalRNotifier;
             _logger = logger;
-            _cancellationToken = cancellationToken;
+            _serviceCancellationToken = serviceCancellationToken;
             _logger.LogInformation("Worker {NodeID} created.", NodeID);
+        }
+
+        private async Task RunMockProcessing(Guid jobId)
+        {
+            int totalTimeMs = _random.Next(1000, 600000);
+            int stepTime = totalTimeMs / 100;
+
+            for (int i = 1; i < 100; i++) // Iterate up to 100 progress steps
+            {
+                if (CurrentJob == null || jobCancellationToken.IsCancellationRequested || _serviceCancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                CurrentJob.Progress = i;
+                await _signalRNotifier.NotifyJobProgress(jobId, i);
+                await Task.Delay(stepTime, jobCancellationToken);
+            }
         }
 
         public async Task ProcessJobsAsync()
         {
-            while (!_cancellationToken.IsCancellationRequested)
+            while (!_serviceCancellationToken.IsCancellationRequested)
             {
-                if (currentJob != null)
+                await Task.Delay(100, _serviceCancellationToken);
+
+                if (CurrentJob != null)
                 {
-                    _logger.LogDebug("Worker {NodeID} processing job {JobID}", NodeID, currentJob.JobID);
+                    Guid jobId = CurrentJob.JobID;
+
                     try
                     {
-                        await _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Running);
-                        _logger.LogDebug("Worker {NodeID} reported RUNNING for job {JobID}", NodeID, currentJob.JobID);
+                        await _signalRNotifier.NotifyJobStatus(jobId, JobStatus.Running);
+                        _logger.LogDebug("Worker {NodeID} started job {JobID}", NodeID, jobId);
 
-                        // Mock processing time between 1 second and 10 minutes
-                        int totalTimeMs = _random.Next(1000, 600000);
-                        int stepTime = totalTimeMs / 100;
+                        await RunMockProcessing(jobId);
 
-                        for (int i = 1; i < 100 && !_cancellationToken.IsCancellationRequested; i++)
+                        if (_serviceCancellationToken.IsCancellationRequested)
                         {
-                            currentJob.Progress = i;
-                            await _signalRNotifier.NotifyJobProgress(currentJob.JobID, i);
-                            _logger.LogDebug("Worker {NodeID} reported {Progress}% progress for job {JobID}", NodeID, i, currentJob.JobID);
-                            await Task.Delay(stepTime, _cancellationToken);
+                            await _signalRNotifier.NotifyJobStatus(jobId, JobStatus.Failed);
+                            _logger.LogInformation("Worker {NodeID} stopped job {JobID} due to service cancellation.", NodeID, jobId);
                         }
-
-                        // Notify job status as Completed
-                        await _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Completed);
-                        _logger.LogDebug("Worker {NodeID} reported COMPLETED for job {JobID}", NodeID, currentJob.JobID);
+                        else if (jobCancellationToken.IsCancellationRequested)
+                        {
+                            await _signalRNotifier.NotifyJobStatus(jobId, JobStatus.Stopped);
+                            _logger.LogInformation("Worker {NodeID} stopped job {JobID} due to job cancellation.", NodeID, jobId);
+                        }
+                        else
+                        {
+                            await _signalRNotifier.NotifyJobStatus(jobId, JobStatus.Completed);
+                        }
                     }
                     catch (Exception ex)
                     {
-                        try
-                        {
-                            await _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Failed);
-                            _logger.LogWarning("Worker {NodeID} reported FAILED for job {JobID}", NodeID, currentJob.JobID);
-                        }
-                        catch (Exception notifyEx)
-                        {
-                            _logger.LogError(notifyEx, "Worker {NodeID} failed to report FAILED for job {JobID}", NodeID, currentJob.JobID);
-                        }
-
-                        _logger.LogError(ex, "Worker {NodeID} encountered an error while processing job {JobID}", NodeID, currentJob.JobID);
+                        await _signalRNotifier.NotifyJobStatus(CurrentJob.JobID, JobStatus.Failed);
+                        _logger.LogError(ex, "Worker {NodeID} encountered error on job {JobID}", NodeID, CurrentJob.JobID);
                     }
-
-                    currentJob = null;
+                    finally
+                    {
+                        CurrentJob = null;
+                    }
                 }
-
-                await Task.Delay(100, _cancellationToken);
             }
 
-            _logger.LogDebug("Worker {NodeID} received cancellation and is stopping.", NodeID);
+            _logger.LogDebug("Worker {NodeID} exiting ProcessJobsAsync loop due to service cancellation.", NodeID);
         }
-
 
         public void AssignJob(Job job)
         {
-            currentJob = job;
+            if (CurrentJob != null)
+            {
+                _logger.LogWarning("Worker {NodeID} is already processing job {JobID}, cannot assign job {NewJobID}.", NodeID, CurrentJob.JobID, job.JobID);
+                return;
+            }
+
+            CurrentJob = job;
+            _jobCancellationTokenSource = new CancellationTokenSource();
             _logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
         }
 
-        public async Task StopJob()
+        public void StopJob()
         {
-            if (currentJob != null)
+            if (CurrentJob == null)
             {
-                _logger.LogDebug("Worker {NodeID} stop requested for job {JobID}. Status: {Status}, Progress: {Progress}%",
-                                 NodeID, currentJob.JobID, currentJob.Status, currentJob.Progress);
-
-                await _signalRNotifier.NotifyJobProgress(currentJob.JobID, currentJob.Progress);
-                await _signalRNotifier.NotifyJobStatus(currentJob.JobID, JobStatus.Stopped);
-                currentJob = null;
+                _logger.LogWarning("Worker {NodeID} stop requested, but no job is currently assigned.", NodeID);
+                return;
             }
-            else
-            {
-                _logger.LogDebug("Worker {NodeID} stop requested, but no job is currently assigned. Stopping.", NodeID);
-            }
-            _cancellationToken.ThrowIfCancellationRequested();
 
-            _logger.LogDebug("Worker {NodeID} has been stopped.", NodeID);
+            _jobCancellationTokenSource?.Cancel();
+            _logger.LogDebug("Worker {NodeID} cancel requested for job {JobID}", NodeID, CurrentJob?.JobID);
         }
     }
 }
