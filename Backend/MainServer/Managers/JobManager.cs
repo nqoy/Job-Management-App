@@ -1,7 +1,9 @@
 ﻿using JobsClassLibrary.Classes;
+using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
-using MainServer.Classes;
+using MainServer.DB;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MainServer.Managers
 {
@@ -269,7 +271,7 @@ namespace MainServer.Managers
             }
         }
 
-        internal async Task UpdateJobStatusAsync(Guid jobID, JobStatus newJobStatus)
+        internal async Task UpdateJobProgress(Guid jobID, JobStatus updatedJobStatus, int jobProgress)
         {
             Job? job;
 
@@ -279,47 +281,55 @@ namespace MainServer.Managers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error querying job {JobId} for status update.", jobID);
+                _logger.LogError(ex, "Error querying job {JobId} for progress update.", jobID);
                 throw;
             }
 
             if (job == null)
             {
-                _logger.LogWarning("Attempted to update job {JobId} status, but it was not found.", jobID);
+                _logger.LogWarning("Attempted to update progress for job {JobId}, but it was not found.", jobID);
                 throw new InvalidOperationException($"Job {jobID} not found.");
             }
 
-            switch (newJobStatus)
+
+            if (job.Status != updatedJobStatus)
             {
-                case JobStatus.Running:
-                    job.MarkStarted();
-                    break;
+                switch (updatedJobStatus)
+                {
+                    case JobStatus.Running:
+                        job.MarkStarted();
+                        break;
 
-                case JobStatus.Completed:
-                    job.MarkCompleted();
-                    break;
-                default:
-                    job.Status = newJobStatus;
-                    break;
+                    case JobStatus.Completed:
+                        job.MarkCompleted();
+                        break;
+                    case JobStatus.InQueue:
+                        job.Status = updatedJobStatus;
+                        break;
+                    default:
+                        job.MarkProgress(updatedJobStatus, jobProgress);
+                        break;
+                }
+                try
+                {
+                    await _db.SaveChangesAsync();
+                    _logger.LogDebug("Updated progress for job [{JobId}] to [{JobProgress}].", jobID, jobProgress);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to update progress for job [{JobId}].", jobID);
+                    throw;
+                }
+                try
+                {
+                    // await _eventManager.SendJobProgressUpdateToJobsApp(jobID, updatedJobStatus);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send progress update for job [{JobId}] via event manager.", jobID);
+                    throw;
+                }
             }
-
-            try
-            {
-                await _db.SaveChangesAsync();
-                // await _eventManager.SendJobStatusUpdateToJobsApp(jobID, jobStatus);
-
-                _logger.LogDebug("Updated status of job [{JobId}] to [{JobStatus}].", jobID, newJobStatus);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to update job [{JobId}] status.", jobID);
-                throw;
-            }
-        }
-
-        internal async Task UpdateJobProgressAsync(Guid jobID, int jobProgress)
-        {
-            throw new NotImplementedException(); //Broeadcast to Front. save only on status update
         }
 
         internal async Task<int> DeleteJobsByStatusAsync(JobStatus status)
@@ -336,6 +346,70 @@ namespace MainServer.Managers
             {
                 _logger.LogError(ex, "Error deleting jobs with status {Status}.", status);
                 throw;
+            }
+        }
+
+        internal async Task SaveQueueBackupData(List<QueuedJob> queuedJobs)
+        {
+            if (queuedJobs == null || queuedJobs.Count == 0)
+            {
+                _logger.LogInformation("No queued jobs to back up.");
+                return;
+            }
+
+            long backupTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            try
+            {
+                List<QueueBackupJob> backupEntries = queuedJobs.Select(job => new QueueBackupJob
+                {
+                    JobID = job.JobID,
+                    QueuingTime = job.QueuingTime,
+                    BackupTimestamp = backupTimestamp
+                }).ToList();
+
+                _db.QueueBackups.RemoveRange(_db.QueueBackups);
+                _db.QueueBackups.AddRange(backupEntries);
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogDebug("Cleared all previous backups and saved {Count} new entries at timestamp {Timestamp}.", backupEntries.Count, backupTimestamp);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save queue backup data.");
+            }
+        }
+
+        internal async Task SendQueuedJobsToWorkerService()
+        {
+            try
+            {
+                List<QueuedJob> queuedJobs = await (
+                    from job in _db.Jobs join backup in _db.QueueBackups
+                    on job.JobID equals backup.JobID
+                    select new QueuedJob
+                    {
+                        JobID = job.JobID,
+                        Status = job.Status,
+                        Priority = job.Priority,
+                        QueuingTime = backup.QueuingTime,
+                    }).OrderBy(j => j.Priority).ThenBy(j => j.QueuingTime).ToListAsync();
+
+                if (queuedJobs == null || queuedJobs.Count == 0)
+                {
+                    _logger.LogInformation("No queued jobs to send.");
+                    return;
+                }
+                List<Job> jobsToRun = queuedJobs.Cast<Job>().ToList();
+
+                await _eventManager.SendJobsToWorkerService(jobsToRun);
+
+                _logger.LogDebug("Successfully sent {Count} queued jobs to worker service.", queuedJobs.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch and send queued jobs to worker service.");
             }
         }
     }

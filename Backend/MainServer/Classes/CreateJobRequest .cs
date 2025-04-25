@@ -1,4 +1,4 @@
-﻿using JobsClassLibrary.Classes;
+﻿using JobsClassLibrary.Classes.Job;
 
 namespace MainServer.Classes
 {

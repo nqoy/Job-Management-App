@@ -8,26 +8,16 @@ namespace JobsWorkerService.Classes
         private readonly SignalRClient _signalRClient = signalRClient;
         private readonly ILogger<SignalRNotifier> _logger = logger;
 
-        public async Task NotifyJobStatus(Guid jobID, JobStatus status)
+        internal async Task NotifyJobProgress(Guid jobID, JobStatus status, int jobProgress)
         {
             object payload = new
             {
                 JobID = jobID,
-                Status = status
-            };
-
-            await sendEvent(JobEvent.UpdateJobStatus, payload);
-        }
-
-        internal async Task NotifyJobProgress(Guid jobID, int jobProgress)
-        {
-            object payload = new
-            {
-                JobID = jobID,
+                Status = status,
                 Progress = jobProgress
             };
 
-            await sendEvent(JobEvent.UpdateJobProgerss, payload);
+            await sendEvent(JobEvent.UpdateJobProgress, payload);
         }
 
         internal async Task SendRecoverJobQueue(string serializedQueue)

@@ -1,5 +1,4 @@
-﻿
-namespace JobsClassLibrary.Classes
+﻿namespace JobsClassLibrary.Classes.Job
 {
     public class QueuedJob : Job
     {

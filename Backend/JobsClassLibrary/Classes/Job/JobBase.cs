@@ -1,6 +1,6 @@
 ﻿using JobsClassLibrary.Enums;
 
-namespace JobsClassLibrary.Classes
+namespace JobsClassLibrary.Classes.Job
 {
     public class JobBase
     {

@@ -1,15 +1,17 @@
 ﻿using JobsClassLibrary.Enums;
+using JobsClassLibrary.Interfaces;
 
-namespace JobsClassLibrary.Classes
+namespace JobsClassLibrary.Classes.Job
 {
-    public class Job : JobBase
+    public class Job : JobBase, IJobProgress
     {
         public Guid JobID { get; set; }
         public JobStatus Status { get; set; }
+        public int Progress { get; set; }
         public long CreatedAt { get; set; }
         public long StartedAt { get; set; }
         public long CompletedAt { get; set; }
-        public int Progress { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
 
         public Job() { }
 
@@ -37,6 +39,15 @@ namespace JobsClassLibrary.Classes
             Status = JobStatus.Pending;
             StartedAt = 0;
             Progress = 0;
+        }
+
+        public void MarkProgress(JobStatus status, int progress, string ex = "")
+        {
+            Status = status;
+            Progress = progress;
+            ErrorMessage = status == JobStatus.Stopped
+                ? $"Stop Time : {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"
+                : $"Job Process Failed at : {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}\n{ex}";
         }
     }
 }

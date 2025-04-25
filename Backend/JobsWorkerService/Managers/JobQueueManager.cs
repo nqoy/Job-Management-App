@@ -1,4 +1,5 @@
-﻿using JobsClassLibrary.Classes;
+﻿using JobsClassLibrary.Classes.Job;
+using JobsClassLibrary.Enums;
 using JobsWorkerService.Classes;
 using JobsWorkerService.Factories;
 using System.Text;
@@ -83,6 +84,7 @@ namespace JobsWorkerService.Managers
         public void AddJobToQueue(QueuedJob job)
         {
             _jobQueue.Enqueue(job);
+            sendJobInQueueUpdate(job);
             _logger.LogDebug("Enqueued job {JobId} with priority {Priority}. Queue size is now {Count}.",
                 job.JobID, job.Priority, _jobQueue.Count);
 
@@ -226,6 +228,21 @@ namespace JobsWorkerService.Managers
                     _logger.LogWarning("Job {JobID} was not found in the queue for removal.", jobID);
                 }
             }
+        }
+
+        private void sendJobInQueueUpdate(QueuedJob job)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await _signalRNotifier.NotifyJobProgress(job.JobID, JobStatus.InQueue, 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send job progress notification for JobID {JobId}", job.JobID);
+                }
+            });
         }
     }
 }

@@ -1,4 +1,5 @@
 using JobsClassLibrary.Classes;
+using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using MainServer.Classes;
 using MainServer.Managers;
@@ -106,13 +107,13 @@ namespace MainServer.Controllers
             if (!Enum.TryParse<JobStatus>(status, true, out JobStatus parsedStatus))
             {
                 _logger.LogWarning("Invalid status: {Status}. The status is not a valid JobStatus enum value.", status);
-                return BadRequest("Invalid status. The status must be a valid JobStatus enum value.");
+                return base.BadRequest("Invalid status. The status must be a valid JobStatus enum value.");
             }
 
             if (parsedStatus != JobStatus.Failed && parsedStatus != JobStatus.Stopped)
             {
                 _logger.LogWarning("Invalid status: {Status}. Only 'Failed' or 'Stopped' are allowed.", status);
-                return BadRequest("Invalid status. Only 'Failed' or 'Stopped' statuses are allowed.");
+                return base.BadRequest("Invalid status. Only 'Failed' or 'Stopped' statuses are allowed.");
             }
 
             try

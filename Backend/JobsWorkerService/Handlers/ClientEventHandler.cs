@@ -1,8 +1,7 @@
-﻿using JobsClassLibrary.Classes;
+﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
 using JobsWorkerService.Managers;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace JobsWorkerService.Handlers
@@ -43,19 +42,27 @@ namespace JobsWorkerService.Handlers
             {
                 _signalRClient.RegisterEventHandler(eventName, jobHandler);
             }
-            else if (handler is Action<List<Guid>> guidHandler)
+            else if (handler is Action<Guid> guidHandler)
             {
                 _signalRClient.RegisterEventHandler(eventName, guidHandler);
+            }
+            else if (handler is Action<List<Guid>> guidListHandler)
+            {
+                _signalRClient.RegisterEventHandler(eventName, guidListHandler);
             }
             else if (handler is Action<List<Guid>, JobStatus> statusHandler)
             {
                 _signalRClient.RegisterEventHandler(eventName, statusHandler);
             }
+            else if (handler is Action<string> serilizedHandler)
+            {
+                _signalRClient.RegisterEventHandler(eventName, serilizedHandler);
+            }
         }
 
         private void handleJobsReceived(List<QueuedJob> jobs)
         {
-            _logger.LogInformation("Received {JobCount} jobs from SignalR", jobs.Count);
+            _logger.LogInformation("Received [{event}] : {JobCount} jobs ", JobEvent.JobRecived, jobs.Count);
 
             foreach (QueuedJob job in jobs)
             {
@@ -65,7 +72,7 @@ namespace JobsWorkerService.Handlers
 
         private void handleStopJob(Guid jobID)
         {
-            _logger.LogInformation("Received stop job event for {jobID} job.", jobID);
+            _logger.LogInformation("Received [{event}] event for {jobID} job.",JobEvent.StopJob, jobID);
             _jobQueueManager.StopJobAsync(jobID);
         }
 
@@ -75,7 +82,7 @@ namespace JobsWorkerService.Handlers
 
             if (jobs != null)
             {
-                _logger.LogInformation("Received status update for {UpdateCount} jobs.", jobs.Count);
+                _logger.LogInformation("Received [{event}] for {UpdateCount} jobs.", JobEvent.RecoverJobQueue, jobs.Count);
 
                 _jobQueueManager.RecoverJobQueue(jobs);
             }

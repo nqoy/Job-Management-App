@@ -1,4 +1,4 @@
-﻿using JobsClassLibrary.Classes;
+﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using MainServer.Hubs;
 using Microsoft.AspNetCore.SignalR;
@@ -15,11 +15,11 @@ namespace MainServer.Managers
             await SendEvent(SystemService.WorkerService, JobEvent.JobRecived, jobs);
         }
 
-        public async Task SendJobStatusUpdateToJobsApp(Guid jobID, JobStatus jobStatus)
+        public async Task SendJobProgressUpdateToJobsApp(Guid jobID, JobStatus jobStatus)
         {
             object statusPayload = new { JobID = jobID, JobStatus = jobStatus };
 
-            await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobStatus, statusPayload);
+            await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobProgress, statusPayload);
         }
 
         public async Task SendStopJobToWorkerService(Guid jobID)

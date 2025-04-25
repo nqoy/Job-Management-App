@@ -1,6 +1,6 @@
 ﻿using JobsClassLibrary.Classes;
 using JobsClassLibrary.Utils;
-using MainServer.Classes;
+using MainServer.DB;
 using MainServer.Handlers;
 using MainServer.Hubs;
 using MainServer.Managers;
@@ -42,14 +42,14 @@ namespace MainServer.Initialization
             builder.Services.AddSingleton(signalRConfig);
             builder.Services.AddSignalR();
 
-            // Your DI registrations
+            // DI registrations
             builder.Services.AddScoped<JobManager>();
             builder.Services.AddScoped<JobEventManager>();
             builder.Services.AddScoped<JobEventHandler>();
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // CORS
+            // CORS policy
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -74,7 +74,7 @@ namespace MainServer.Initialization
 
             app.UseHttpsRedirection();
 
-            // CORS before any endpoints
+            // CORS before endpoints & Auth
             app.UseCors();
 
             app.UseAuthorization();

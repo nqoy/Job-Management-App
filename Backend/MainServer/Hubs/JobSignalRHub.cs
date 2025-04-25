@@ -64,7 +64,7 @@ namespace MainServer.Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task HandleEvent(string eventType, object payload)
+        public async Task HandleEvent(string eventType, object payload) // Listener for "HandleEvent" from Services
         {
             string? serviceName = Context.GetHttpContext()?.Request.Query["service"].ToString()
                                   ?? $"UnknownService with id : {Context.ConnectionId}";

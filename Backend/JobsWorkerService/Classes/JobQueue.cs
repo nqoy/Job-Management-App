@@ -1,4 +1,4 @@
-﻿using JobsClassLibrary.Classes;
+﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using Newtonsoft.Json;
 
