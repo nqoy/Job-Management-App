@@ -15,11 +15,11 @@ namespace MainServer.StartupInitialization
             try
             {
                 // Create a scope to resolve scoped services
-                using var scope = _serviceScopeFactory.CreateScope();
-                var jobManager = scope.ServiceProvider.GetRequiredService<JobManager>();  // Resolve JobManager
+                using IServiceScope scope = _serviceScopeFactory.CreateScope();
+                JobManager jobManager = scope.ServiceProvider.GetRequiredService<JobManager>();
 
                 _logger.LogInformation("Sending queued jobs to worker service on startup.");
-                await jobManager.SendQueuedJobsToWorkerService();
+                await jobManager.SendRecoveryQueuedJobsToWorkerService();
             }
             catch (Exception ex)
             {

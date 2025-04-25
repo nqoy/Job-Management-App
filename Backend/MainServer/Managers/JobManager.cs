@@ -3,7 +3,6 @@ using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using MainServer.DB;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace MainServer.Managers
 {
@@ -381,7 +380,7 @@ namespace MainServer.Managers
             }
         }
 
-        internal async Task SendQueuedJobsToWorkerService()
+        internal async Task SendRecoveryQueuedJobsToWorkerService()
         {
             try
             {
