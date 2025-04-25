@@ -1,10 +1,12 @@
 ﻿using JobsClassLibrary.Enums;
 using JobsClassLibrary.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace JobsClassLibrary.Classes.Job
 {
     public class Job : JobBase, IJobProgress
     {
+        [Key]
         public Guid JobID { get; set; }
         public JobStatus Status { get; set; }
         public int Progress { get; set; }

@@ -368,8 +368,8 @@ namespace MainServer.Managers
                     BackupTimestamp = backupTimestamp
                 }).ToList();
 
-                _db.QueueBackups.RemoveRange(_db.QueueBackups);
-                _db.QueueBackups.AddRange(backupEntries);
+                _db.QueueBackupJobs.RemoveRange(_db.QueueBackupJobs);
+                _db.QueueBackupJobs.AddRange(backupEntries);
 
                 await _db.SaveChangesAsync();
 
@@ -386,13 +386,13 @@ namespace MainServer.Managers
             try
             {
                 List<QueuedJob> queuedJobs = await (
-                    from job in _db.Jobs join backup in _db.QueueBackups
+                    from job in _db.Jobs join backup in _db.QueueBackupJobs
                     on job.JobID equals backup.JobID
                     select new QueuedJob
                     {
                         JobID = job.JobID,
-                        Status = job.Status,
                         Priority = job.Priority,
+                        Status = JobStatus.Pending,
                         QueuingTime = backup.QueuingTime,
                     }).OrderBy(j => j.Priority).ThenBy(j => j.QueuingTime).ToListAsync();
 

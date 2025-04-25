@@ -4,6 +4,7 @@ using MainServer.DB;
 using MainServer.Handlers;
 using MainServer.Hubs;
 using MainServer.Managers;
+using MainServer.StartupInitialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 
@@ -33,11 +34,8 @@ namespace MainServer.Initialization
             });
 
             // Bind and register SignalRSettings
-            var signalRConfig = builder.Configuration
-                                      .GetSection("SignalR")
-                                      .Get<SignalRSettings>()
-                                  ?? throw new InvalidOperationException(
-                                      "Configuration section 'SignalR' is missing or invalid.");
+            SignalRSettings signalRConfig = builder.Configuration.GetSection("SignalR").Get<SignalRSettings>()
+                                          ?? throw new InvalidOperationException("Configuration section 'SignalR' is missing or invalid.");
 
             builder.Services.AddSingleton(signalRConfig);
             builder.Services.AddSignalR();
@@ -60,6 +58,8 @@ namespace MainServer.Initialization
                           .SetIsOriginAllowed(_ => true);
                 });
             });
+
+            builder.Services.AddHostedService<StartupBackgroundService>();
         }
 
         public static void ConfigureApp(WebApplication app)
