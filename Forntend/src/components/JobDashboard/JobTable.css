@@ -1,0 +1,171 @@
+.job-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: var(--spacing-md);
+}
+
+.job-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--white-color);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.job-table th,
+.job-table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--light-color);
+}
+
+.job-table th {
+  background-color: var(--secondary-color);
+  color: var(--white-color);
+  font-weight: 600;
+}
+
+.job-table tr:hover {
+  background-color: rgba(236, 240, 241, 0.5);
+}
+
+.no-jobs {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--gray-color);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.status-badge.status-pending {
+  background-color: rgba(243, 156, 18, 0.1);
+  color: var(--status-pending);
+}
+
+.status-badge.status-running {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--status-running);
+}
+
+.status-badge.status-completed {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: var(--status-completed);
+}
+
+.status-badge.status-failed {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--status-failed);
+}
+
+.status-badge.status-stopped {
+  background-color: rgba(149, 165, 166, 0.1);
+  color: var(--status-stopped);
+}
+
+.status-badge.status-inqueue {
+  background-color: rgba(155, 89, 182, 0.1);
+  color: var(--status-inqueue);
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.priority-badge.priority-regular {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--priority-regular);
+}
+
+.priority-badge.priority-high {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--priority-high);
+}
+
+.progress-bar {
+  height: 8px;
+  width: 100%;
+  background-color: var(--light-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-xs);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-fill.status-pending {
+  background-color: var(--status-pending);
+}
+
+.progress-bar-fill.status-running {
+  background-color: var(--status-running);
+}
+
+.progress-bar-fill.status-completed {
+  background-color: var(--status-completed);
+}
+
+.progress-bar-fill.status-failed {
+  background-color: var(--status-failed);
+}
+
+.progress-bar-fill.status-stopped {
+  background-color: var(--status-stopped);
+}
+
+.progress-bar-fill.status-inqueue {
+  background-color: var(--status-inqueue);
+}
+
+.progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--gray-color);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.action-button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity var(--transition-speed), transform var(--transition-speed);
+}
+
+.action-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.action-button.stop {
+  background-color: var(--warning-color);
+  color: var(--white-color);
+}
+
+.action-button.restart {
+  background-color: var(--info-color);
+  color: var(--white-color);
+}
+
+.action-button.delete {
+  background-color: var(--danger-color);
+  color: var(--white-color);
+}

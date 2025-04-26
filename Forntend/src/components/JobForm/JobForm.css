@@ -1,0 +1,42 @@
+.job-form {
+  width: 100%;
+}
+
+.error-message {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--danger-color);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.priority-options {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.priority-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.priority-option input {
+  margin-right: var(--spacing-xs);
+}
+
+.priority-label {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.priority-label.regular {
+  background-color: rgba(52, 152, 219, 0.1);
+  color: var(--priority-regular);
+}
+
+.priority-label.high {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--priority-high);
+}

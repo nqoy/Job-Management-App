@@ -1,0 +1,123 @@
+/* src/components/JobDashboard/JobDashboard.css */
+.job-dashboard {
+  padding: var(--spacing-lg) 0;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-header h1 {
+  margin: 0;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.dashboard-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.summary-card {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  text-align: center;
+  background-color: var(--white-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-speed);
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.summary-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
+}
+
+.summary-label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-color);
+}
+
+.summary-card.pending {
+  border-top: 3px solid var(--status-pending);
+}
+
+.summary-card.running {
+  border-top: 3px solid var(--status-running);
+}
+
+.summary-card.completed {
+  border-top: 3px solid var(--status-completed);
+}
+
+.summary-card.failed {
+  border-top: 3px solid var(--status-failed);
+}
+
+.summary-card.stopped {
+  border-top: 3px solid var(--status-stopped);
+}
+
+.summary-card.inqueue {
+  border-top: 3px solid var(--status-inqueue);
+}
+
+.error-banner {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--danger-color);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--gray-color);
+  font-style: italic;
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .dashboard-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .dashboard-actions button {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .summary-card {
+    padding: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

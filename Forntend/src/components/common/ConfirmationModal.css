@@ -1,0 +1,10 @@
+/* src/components/common/ConfirmationModal.css */
+.confirmation-message {
+  margin-bottom: var(--spacing-lg);
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}

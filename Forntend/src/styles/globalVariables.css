@@ -1,0 +1,52 @@
+:root {
+  /* Colors */
+  --primary-color: #3498db;
+  --secondary-color: #2c3e50;
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --info-color: #3498db;
+  --light-color: #ecf0f1;
+  --dark-color: #34495e;
+  --gray-color: #95a5a6;
+  --white-color: #ffffff;
+
+  /* Status Colors */
+  --status-pending: #f39c12;
+  --status-running: #3498db;
+  --status-completed: #2ecc71;
+  --status-failed: #e74c3c;
+  --status-stopped: #95a5a6;
+  --status-inqueue: #9b59b6;
+
+  /* Priority Colors */
+  --priority-regular: #3498db;
+  --priority-high: #e74c3c;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Font Sizes */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Transitions */
+  --transition-speed: 0.3s;
+}

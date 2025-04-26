@@ -76,7 +76,7 @@ namespace MainServer.StartupInitialization
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
             // CORS before endpoints & Auth
             app.UseCors();
