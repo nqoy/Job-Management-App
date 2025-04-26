@@ -1,7 +1,7 @@
 ﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Classes;
-using JobsWorkerService.Factories;
+using JobsWorkerService.Clients.SignalR;
 using System.Text;
 
 namespace JobsWorkerService.Managers
@@ -9,28 +9,29 @@ namespace JobsWorkerService.Managers
     public class JobQueueManager
     {
         private readonly CancellationTokenSource _cancellationTokenSource = new();
-        private readonly List<WorkerNode> _workerPool = [];
-        private readonly WorkerNodeFactory _workerFactory;
-        private readonly JobQueue _jobQueue = new();
-        private readonly CancellationToken _token;
-        private readonly SignalRNotifier _signalRNotifier;
         private readonly IHostApplicationLifetime _applicationLifetime;
+        private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
+        private readonly CancellationToken _cancellationToken;
+        private readonly List<WorkerNode> _workerPool = [];
+        private readonly SignalREventSender _signalRNotifier;
+        private readonly ILogger<JobQueueManager> _logger;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly JobQueue _jobQueue = new();
 
+        // Settings
         private long _lastScaleTime = 0;
         private readonly int _maxWorkers;
         private readonly int _minWorkers;
         private readonly int _scaleCooldownSeconds;
         private readonly int _jobsToWorkerRatioThreshold;
         private readonly int _sendQueueIntervalSeconds;
-        private readonly ILogger<JobQueueManager> _logger;
-        private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
 
-        public JobQueueManager(IConfiguration configuration, WorkerNodeFactory workerFactory, ILogger<JobQueueManager> logger, SignalRNotifier signalRNotifier, IHostApplicationLifetime applicationLifetime)
+        public JobQueueManager(IConfiguration configuration, ILoggerFactory loggerFactory, ILogger<JobQueueManager> logger, SignalREventSender signalRNotifier, IHostApplicationLifetime applicationLifetime)
         {
             _logger = logger;
-            _workerFactory = workerFactory;
+            _loggerFactory = loggerFactory;
             _signalRNotifier = signalRNotifier;
-            _token = _cancellationTokenSource.Token;
+            _cancellationToken = _cancellationTokenSource.Token;
             _applicationLifetime = applicationLifetime;
             _applicationLifetime.ApplicationStopping.Register(async () =>
             {
@@ -76,13 +77,13 @@ namespace JobsWorkerService.Managers
         {
             Task.Run(async () =>
             {
-                while (!_token.IsCancellationRequested)
+                while (!_cancellationToken.IsCancellationRequested)
                 {
-                    await Task.Delay(_sendQueueIntervalSeconds * 1000, _token);
+                    await Task.Delay(_sendQueueIntervalSeconds * 1000, _cancellationToken);
 
                     await backupQueueAsync();
                 }
-            }, _token);
+            }, _cancellationToken);
         }
 
         private async Task backupQueueAsync()
@@ -114,9 +115,9 @@ namespace JobsWorkerService.Managers
             _logger.LogInformation("Starting {Count} initial worker nodes.", _minWorkers);
             for (int i = 0; i < _minWorkers; i++)
             {
-                WorkerNode node = _workerFactory.Create(_token);
+                WorkerNode node = createWorkerNode();
                 _workerPool.Add(node);
-                Task.Run(node.ProcessJobsAsync, _token);
+                Task.Run(node.ProcessJobsAsync, _cancellationToken);
             }
         }
 
@@ -125,13 +126,13 @@ namespace JobsWorkerService.Managers
             while (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
                 // Wait for at least one job in queue
-                await _jobsInQueueSignal.WaitAsync(_token);
+                await _jobsInQueueSignal.WaitAsync(_cancellationToken);
 
                 while (_jobQueue.Count > 0)
                 {
                     assignJobsToAvailableWorkers();
                     // Minimal delay to avoid excessive CPU usage
-                    await Task.Delay(500, _token);
+                    await Task.Delay(500, _cancellationToken);
                 }
             }
         }
@@ -145,12 +146,12 @@ namespace JobsWorkerService.Managers
             {
                 if (_jobQueue.Count == 0)
                     break;
-                Job job = _jobQueue.Dequeue();
-
+                //Job job = _jobQueue.Dequeue();
+                Job job = null; // TODO : Return to original
                 worker.AssignJob(job);
                 assignedJobs++;
                 availableWorkers.Remove(worker);
-                _logger.LogDebug("Assigned job {JobId} to worker {WorkerId}.", job.JobID, worker.NodeID);
+                //_logger.LogDebug("Assigned job {JobId} to worker {WorkerId}.", job.JobID, worker.NodeID);
             }
 
             if (_jobQueue.Count > 0 || availableWorkers.Count > 0)
@@ -193,10 +194,10 @@ namespace JobsWorkerService.Managers
         {
             if (_workerPool.Count >= _maxWorkers)
                 return;
-            WorkerNode workerNode = _workerFactory.Create(_token);
+            WorkerNode workerNode = createWorkerNode();
 
             _workerPool.Add(workerNode);
-            Task.Run(workerNode.ProcessJobsAsync, _token);
+            Task.Run(workerNode.ProcessJobsAsync, _cancellationToken);
             _logger.LogInformation("Scaling up: New worker added. Total: {Count}.", _workerPool.Count);
         }
 
@@ -260,6 +261,14 @@ namespace JobsWorkerService.Managers
                     _logger.LogError(ex, "Failed to send job progress notification for JobID {JobId}", job.JobID);
                 }
             });
+        }
+
+        private WorkerNode createWorkerNode()
+        {
+            return new WorkerNode(
+                _signalRNotifier,
+                _loggerFactory.CreateLogger<WorkerNode>(),
+                _cancellationToken);
         }
     }
 }

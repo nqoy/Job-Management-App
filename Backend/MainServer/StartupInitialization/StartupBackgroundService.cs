@@ -1,5 +1,4 @@
-﻿using MainServer.Managers;
-
+﻿
 namespace MainServer.StartupInitialization
 {
     public class StartupBackgroundService(IServiceScopeFactory serviceScopeFactory, ILogger<StartupBackgroundService> logger) : BackgroundService
@@ -14,12 +13,9 @@ namespace MainServer.StartupInitialization
 
             try
             {
-                // Create a scope to resolve scoped services
                 using IServiceScope scope = _serviceScopeFactory.CreateScope();
-                JobManager jobManager = scope.ServiceProvider.GetRequiredService<JobManager>();
-
-                _logger.LogInformation("Sending queued jobs to worker service on startup.");
-                await jobManager.SendRecoveryQueuedJobsToWorkerService();
+                // Get Service Provider and do work
+                // scope.ServiceProvider.GetRequiredService<T>();
             }
             catch (Exception ex)
             {
@@ -27,5 +23,4 @@ namespace MainServer.StartupInitialization
             }
         }
     }
-
 }

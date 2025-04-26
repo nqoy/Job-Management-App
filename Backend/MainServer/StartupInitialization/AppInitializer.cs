@@ -2,9 +2,7 @@
 using JobsClassLibrary.Utils;
 using MainServer.DB;
 using MainServer.Handlers;
-using MainServer.Hubs;
 using MainServer.Managers;
-using MainServer.StartupInitialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 
@@ -58,8 +56,8 @@ namespace MainServer.Initialization
                           .SetIsOriginAllowed(_ => true);
                 });
             });
-
-            builder.Services.AddHostedService<StartupBackgroundService>();
+            // Add Background Worker On Need
+            // builder.Services.AddHostedService<StartupBackgroundService>();
         }
 
         public static void ConfigureApp(WebApplication app)

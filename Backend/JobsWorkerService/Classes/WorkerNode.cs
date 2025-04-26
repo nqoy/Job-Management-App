@@ -41,7 +41,7 @@ namespace JobsWorkerService.Classes
                 }
 
                 CurrentJob.Progress = i;
-                await _signalRNotifier.NotifyJobProgress(jobId, JobStatus.Running ,i);
+                await _signalRNotifier.NotifyJobProgress(jobId, JobStatus.Running, i);
                 await Task.Delay(stepTime, jobCancellationToken);
             }
         }
@@ -103,7 +103,8 @@ namespace JobsWorkerService.Classes
             _jobCancellationTokenSource?.Dispose();
             _jobCancellationTokenSource = new CancellationTokenSource();
             CurrentJob = job;
-            _logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
+            // TODO : return after recover check
+            //_logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
         }
 
         public void StopJob()

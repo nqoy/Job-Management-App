@@ -348,7 +348,7 @@ namespace MainServer.Managers
             }
         }
 
-        internal async Task SaveQueueBackupData(List<QueuedJob> queuedJobs)
+        internal async Task SaveQueueBackupData(List<QueueBackupJob> queuedJobs)
         {
             if (queuedJobs == null)
             {
@@ -360,9 +360,10 @@ namespace MainServer.Managers
 
             try
             {
-                List<QueueBackupJob> backupEntries = queuedJobs.Select(job => new QueueBackupJob
+                List<QueueBackupJobRow> backupEntries = queuedJobs.Select(job => new QueueBackupJobRow
                 {
                     JobID = job.JobID,
+                    Priority = job.Priority,
                     QueuingTime = job.QueuingTime,
                     BackupTimestamp = backupTimestamp
                 }).ToList();
@@ -385,7 +386,8 @@ namespace MainServer.Managers
             try
             {
                 List<QueuedJob> queuedJobs = await (
-                    from job in _db.Jobs join backup in _db.QueueBackupJobs
+                    from job in _db.Jobs
+                    join backup in _db.QueueBackupJobs
                     on job.JobID equals backup.JobID
                     select new QueuedJob
                     {

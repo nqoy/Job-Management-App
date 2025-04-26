@@ -4,9 +4,9 @@ namespace JobsClassLibrary.Enums
 {
     public enum JobEvent
     {
-        JobRecived,
         StopJob,
+        JobRecive,
+        JobQueueBackup,
         UpdateJobProgress,
-        RecoverJobQueue,
     }
 }

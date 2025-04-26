@@ -1,5 +1,5 @@
-﻿using System.Text.Json;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace JobsClassLibrary.Utils
 {
@@ -18,19 +18,33 @@ namespace JobsClassLibrary.Utils
             {
                 if (payload is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array && jsonElement.GetArrayLength() > 0)
                 {
-                    // Handle empty List Objcets
-                    if (jsonElement[0].ValueKind == JsonValueKind.String && jsonElement[0].GetString() == "[]")
-                    {
-                        deserializedObject = Activator.CreateInstance<T>();
-                        return true;
-                    }
+                    var firstElement = jsonElement[0];
 
-                    JsonElement payloadJsonObj = jsonElement[0];
-                    deserializedObject = JsonSerializer.Deserialize<T>(payloadJsonObj.GetRawText(), options);
+                    if (firstElement.ValueKind == JsonValueKind.String)
+                    {
+                        var jsonString = firstElement.GetString();
+
+                        if (string.IsNullOrWhiteSpace(jsonString))
+                        {
+                            logger.LogWarning("Payload contains an empty string.");
+                            return false;
+                        }
+                        if (jsonString == "[]")
+                        {
+                            deserializedObject = Activator.CreateInstance<T>();
+                            return true;
+                        }
+
+                        deserializedObject = JsonSerializer.Deserialize<T>(jsonString, options);
+                    }
+                    else
+                    {
+                        deserializedObject = JsonSerializer.Deserialize<T>(firstElement.GetRawText(), options);
+                    }
 
                     if (deserializedObject == null)
                     {
-                        logger.LogWarning("Failed to deserialize the payload into the target type.");
+                        logger.LogWarning("Deserialization returned null.");
                         return false;
                     }
 
@@ -46,5 +60,6 @@ namespace JobsClassLibrary.Utils
                 return false;
             }
         }
+
     }
 }
