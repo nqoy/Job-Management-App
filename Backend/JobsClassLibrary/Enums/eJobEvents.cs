@@ -7,6 +7,7 @@ namespace JobsClassLibrary.Enums
         StopJob,
         JobRecive,
         JobQueueBackup,
+        RecoverJobQueue,
         UpdateJobProgress,
     }
 }

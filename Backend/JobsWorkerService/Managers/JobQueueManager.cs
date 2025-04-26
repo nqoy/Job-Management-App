@@ -1,7 +1,6 @@
 ﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Classes;
-using JobsWorkerService.Clients.SignalR;
 using System.Text;
 
 namespace JobsWorkerService.Managers
@@ -13,7 +12,7 @@ namespace JobsWorkerService.Managers
         private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
         private readonly CancellationToken _cancellationToken;
         private readonly List<WorkerNode> _workerPool = [];
-        private readonly SignalREventSender _signalRNotifier;
+        private readonly SignalRNotifier _signalRNotifier;
         private readonly ILogger<JobQueueManager> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private readonly JobQueue _jobQueue = new();
@@ -26,7 +25,7 @@ namespace JobsWorkerService.Managers
         private readonly int _jobsToWorkerRatioThreshold;
         private readonly int _sendQueueIntervalSeconds;
 
-        public JobQueueManager(IConfiguration configuration, ILoggerFactory loggerFactory, ILogger<JobQueueManager> logger, SignalREventSender signalRNotifier, IHostApplicationLifetime applicationLifetime)
+        public JobQueueManager(IConfiguration configuration, ILoggerFactory loggerFactory, ILogger<JobQueueManager> logger, SignalRNotifier signalRNotifier, IHostApplicationLifetime applicationLifetime)
         {
             _logger = logger;
             _loggerFactory = loggerFactory;

@@ -2,6 +2,7 @@
 using JobsClassLibrary.Utils;
 using MainServer.DB;
 using MainServer.Handlers;
+using MainServer.Hubs;
 using MainServer.Managers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;

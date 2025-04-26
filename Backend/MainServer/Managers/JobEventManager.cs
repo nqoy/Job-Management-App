@@ -12,7 +12,7 @@ namespace MainServer.Managers
 
         public async Task SendJobsToWorkerService(List<Job> jobs)
         {
-            await SendEvent(SystemService.WorkerService, JobEvent.JobRecived, jobs);
+            await SendEvent(SystemService.WorkerService, JobEvent.JobRecive, jobs);
         }
 
         public async Task SendJobProgressUpdateToJobsApp(Guid jobID, JobStatus jobStatus)

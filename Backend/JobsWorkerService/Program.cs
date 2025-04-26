@@ -2,7 +2,6 @@ using JobsClassLibrary.Classes;
 using JobsClassLibrary.Utils;
 using JobsWorkerService.Classes;
 using JobsWorkerService.Clients;
-using JobsWorkerService.Factories;
 using JobsWorkerService.Handlers;
 using JobsWorkerService.Managers;
 using Microsoft.Extensions.Logging.Console;
@@ -29,7 +28,6 @@ builder.Services.Configure<SignalRSettings>(
     builder.Configuration.GetSection("SignalR"));
 builder.Services.AddSingleton<SignalRClient>();
 builder.Services.AddSingleton<SignalRNotifier>();
-builder.Services.AddSingleton<WorkerNodeFactory>();
 builder.Services.AddSingleton<JobQueueManager>();
 builder.Services.AddSingleton<ClientEventHandler>();
 

@@ -72,7 +72,7 @@ namespace MainServer.Handlers
 
         private async Task HandleRecoverJobQeueu(string serviceName, object payload)
         {
-            if (!PayloadDeserializer.TryParsePayloadDynamic(payload, _logger, out List<QueuedJob>? queuedJobs))
+            if (!PayloadDeserializer.TryParsePayloadDynamic(payload, _logger, out List<QueueBackupJob>? queuedJobs))
             {
                 // TODO : Handle empty list
                 _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobProgress.", serviceName);
