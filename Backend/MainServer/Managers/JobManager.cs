@@ -422,7 +422,7 @@ namespace MainServer.Managers
 
                 await _eventManager.SendJobsToWorkerService(jobsToRun);
 
-                _logger.LogDebug("Successfully sent {Count} jobs (queued + running) to worker service.", combinedJobs.Count);
+                _logger.LogDebug("Successfully sent {Count} jobs to worker service.", combinedJobs.Count);
             }
             catch (Exception ex)
             {

@@ -1,7 +1,6 @@
 using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 
-
 namespace JobsWorkerService.Classes
 {
     public class WorkerNode
@@ -15,16 +14,15 @@ namespace JobsWorkerService.Classes
         private readonly CancellationToken _serviceCancellationToken;
         private CancellationTokenSource? _jobCancellationTokenSource;
         private CancellationToken jobCancellationToken => _jobCancellationTokenSource?.Token ?? CancellationToken.None;
+        private readonly Action _resetAndReleaseQueueSignal;
 
-        private readonly SemaphoreSlim _assignSignal;
-
-        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, SemaphoreSlim jobsInQueueSignal, CancellationToken serviceCancellationToken)
+        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, Action resetAndReleaseQueueSignal, CancellationToken serviceCancellationToken)
         {
             _logger = logger;
             _signalRNotifier = signalRNotifier;
             _serviceCancellationToken = serviceCancellationToken;
+            _resetAndReleaseQueueSignal = resetAndReleaseQueueSignal;
             _logger.LogInformation("Worker [{NodeID}] has been created.", NodeID);
-            _assignSignal = jobsInQueueSignal;
         }
 
         private async Task RunMockProcessing(Guid jobId)
@@ -84,14 +82,13 @@ namespace JobsWorkerService.Classes
                         CurrentJob = null;
                         _jobCancellationTokenSource?.Dispose();
                         _jobCancellationTokenSource = null;
-                        _assignSignal.Release();
+                        _resetAndReleaseQueueSignal(); 
                     }
                 }
             }
 
             _logger.LogDebug("Worker {NodeID} exiting ProcessJobsAsync loop due to service cancellation.", NodeID);
         }
-
 
         public void AssignJob(Job job)
         {

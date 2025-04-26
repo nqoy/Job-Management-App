@@ -32,13 +32,11 @@ namespace MainServer.Managers
             string serviceToSend = service.ToString();
             string eventName = jobEvent.ToString();
 
-            _logger.LogDebug("Sending '{Event}' to '{Service}'", eventName, serviceToSend);
-
             try
             {
                 await _hubContext.Clients.Group(serviceToSend).SendAsync(eventName, payload);
 
-                _logger.LogDebug("Sent '{Event}' to '{Service}'", eventName, serviceToSend);
+                _logger.LogDebug("Sent [{Event}] to [{Service}] with payload:\n{Payload}", eventName, serviceToSend, payload ?? "No payload");
             }
             catch (Exception ex)
             {

@@ -36,7 +36,7 @@ namespace JobsWorkerService.Classes
         {
             try
             {
-                _logger.LogInformation("Invoking event: {EventType}", eventType);
+                _logger.LogInformation("Send event: [{EventType}]", eventType);
 
                 await _signalRClient.SendEvent(eventType.ToString());
             }
@@ -50,8 +50,6 @@ namespace JobsWorkerService.Classes
         {
             try
             {
-                _logger.LogDebug("Invoking event: [{EventType}] with payload:\n{Payload}", eventType, payload);
-
                 await _signalRClient.SendEvent(eventType.ToString(), payload);
             }
             catch (Exception ex)

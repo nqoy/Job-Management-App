@@ -7,9 +7,9 @@ public class JobQueueManager
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly IHostApplicationLifetime _applicationLifetime;
-    private readonly SemaphoreSlim _jobsInQueueSignal = new(0);
+    private readonly SemaphoreSlim _queueAssignSignal = new(0);
     private readonly CancellationToken _cancellationToken;
-    private readonly List<WorkerNode> _workerPool = new();
+    private readonly List<WorkerNode> _workerPool = [];
     private readonly SignalRNotifier _signalRNotifier;
     private readonly ILogger<JobQueueManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
@@ -54,7 +54,7 @@ public class JobQueueManager
 
         ReadSetting("MaxWorkers", ref _maxWorkers, 100);
         ReadSetting("MinWorkers", ref _minWorkers, 10);
-        ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 30);
+        ReadSetting("ScaleCooldownSeconds", ref _scaleCooldownSeconds, 20);
         ReadSetting("JobsToWorkerRatioThreshold", ref _jobsToWorkerThreshold, 5);
         ReadSetting("BackupQueueIntervalSeconds", ref _sendQueueIntervalSeconds, 30);
         _logger.LogInformation(stringBuilder.ToString());
@@ -123,7 +123,7 @@ public class JobQueueManager
         _logger.LogDebug("Enqueued job {JobId} with priority {Priority}. Queue size is now {Count}.",
             job.JobID, job.Priority, _jobQueue.Count);
 
-        _jobsInQueueSignal.Release();
+        _queueAssignSignal.Release();
     }
 
     private void startInitialWorkerNodes()
@@ -131,9 +131,7 @@ public class JobQueueManager
         _logger.LogInformation("Starting {Count} initial worker nodes.", _minWorkers);
         for (int i = 0; i < _minWorkers; i++)
         {
-            WorkerNode node = createWorkerNode();
-            _workerPool.Add(node);
-            Task.Run(node.ProcessJobsAsync, _cancellationToken);
+            addNewWorker();
         }
     }
 
@@ -141,9 +139,13 @@ public class JobQueueManager
     {
         while (!_cancellationTokenSource.Token.IsCancellationRequested)
         {
-            await _jobsInQueueSignal.WaitAsync(_cancellationToken);
+            await _queueAssignSignal.WaitAsync(_cancellationToken);
+            bool isScalingDown = scaleWorkers();
 
-            assignJobsToAvailableWorkers();
+            if (!isScalingDown)
+            {
+                assignJobsToAvailableWorkers();
+            }
             await Task.Delay(500, _cancellationToken);
         }
     }
@@ -158,58 +160,95 @@ public class JobQueueManager
             Job job = _jobQueue.Dequeue();
 
             _queueChangedSinceLastBackup = true;
-
             worker.AssignJob(job);
             assignedJobs++;
             _logger.LogDebug("Assigned job [{JobId}] to worker: \n[{WorkerId}].", job.JobID, worker.NodeID);
         }
-
-        scaleWorkers();
     }
 
-    private void scaleWorkers()
+    private bool scaleWorkers()
     {
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         if (now - _lastScaleTime < _scaleCooldownSeconds)
-            return;
+            return false;
 
         int workerCount = _workerPool.Count;
         int pendingJobsCount = _jobQueue.Count;
         int currentJobsToWorkerRatio = pendingJobsCount / (workerCount == 0 ? 1 : workerCount);
 
-        bool isScalingUpNeeded = currentJobsToWorkerRatio > _jobsToWorkerThreshold && workerCount < _maxWorkers;
-
-        if (isScalingUpNeeded)
+        try
         {
-            _logger.LogDebug("[SCALE UP]: jobs-to-worker ratio ({Ratio}) > threshold ({Threshold}), workers {Workers} < max {MaxWorkers}",
-                                                        currentJobsToWorkerRatio, _jobsToWorkerThreshold, workerCount, _maxWorkers);
-            addNewWorker();
-            _lastScaleTime = now;
-            return;
-        }
-        bool isScalingDownNeeded = currentJobsToWorkerRatio < _jobsToWorkerThreshold && workerCount > _minWorkers;
+            bool isScalingUpNeeded = currentJobsToWorkerRatio > _jobsToWorkerThreshold && workerCount < _maxWorkers;
 
-        if (isScalingDownNeeded)
-        {
-            int extraWorkers = workerCount - _minWorkers;
-            List<WorkerNode> workersToBeRemoved = _workerPool.Where(worker => !worker.IsAvailable).Take(extraWorkers).ToList();
-
-            if (workersToBeRemoved.Count != 0)
+            if (isScalingUpNeeded)
             {
-                _logger.LogInformation("[SCALE DOWN]: removing {WorkersToRemove} workers. Current: {WorkerCount}, PendingJobs: {PendingJobs}.",
-                                                                    workersToBeRemoved.Count, workerCount, pendingJobsCount);
-                foreach (var worker in workersToBeRemoved)
-                {
-                    removeWorker(worker);
-                }
-                _lastScaleTime = now;
-                return;
-            }
-        }
+                int idealScaledUpWorkerCount = Math.Min(_maxWorkers, (int)Math.Ceiling((double)pendingJobsCount / _jobsToWorkerThreshold));
+                int workersToAddCount = idealScaledUpWorkerCount - workerCount;
 
-        _logger.LogInformation("[WORKERS SUMMARY]:\nCurrent workers: {WorkerCount}\nPending jobs: {PendingJobs}\nJob-to-worker threshold: {Ratio}\nJob-to-worker ratio: {Ratio}",
-                                                                        workerCount, pendingJobsCount, _jobsToWorkerThreshold, currentJobsToWorkerRatio);
+                if (workersToAddCount > 0)
+                {
+                    _logger.LogInformation("[SCALE UP]: Adding {WorkersToAdd} workers. Current: {WorkerCount}, PendingJobs: {PendingJobs}.",
+                                            workersToAddCount, workerCount, pendingJobsCount);
+
+                    for (int i = 0; i < workersToAddCount; i++)
+                    {
+                        addNewWorker();
+                    }
+
+                    _lastScaleTime = now;
+                    _queueAssignSignal.Release();
+                    _lastScaleTime = now;
+                    printWorkerSummary();
+                    return false;
+                }
+            }
+
+            bool isScalingDownNeeded = currentJobsToWorkerRatio < _jobsToWorkerThreshold && workerCount > _minWorkers;
+
+            if (isScalingDownNeeded)
+            {
+                int extraWorkerCount = Math.Max(_minWorkers, (int)Math.Ceiling((double)pendingJobsCount / _jobsToWorkerThreshold));
+                int workersToRemoveCount = workerCount - extraWorkerCount;
+
+                if (workersToRemoveCount > 0)
+                {
+                    List<WorkerNode> availableWorkersForRemoval = _workerPool
+                        .Where(worker => worker.IsAvailable)
+                        .Take(workersToRemoveCount)
+                        .ToList();
+
+                    if (availableWorkersForRemoval.Count > 0)
+                    {
+                        _logger.LogInformation("[SCALE DOWN]: Removing {WorkersToRemove} workers out of {workersToRemoveCount} extra. Current: {WorkerCount},  PendingJobs: {PendingJobs}.",
+                                                                        availableWorkersForRemoval.Count, workersToRemoveCount, workerCount, pendingJobsCount);
+
+                        foreach (WorkerNode worker in availableWorkersForRemoval)
+                        {
+                            removeWorker(worker);
+                        }
+                        _lastScaleTime = now;
+                        printWorkerSummary();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SCALE ERROR]: Exception occurred while scaling workers. Current: {WorkerCount}, PendingJobs: {PendingJobs}.",
+                             workerCount, pendingJobsCount);
+            return false;
+        }
+    }
+
+    private void printWorkerSummary()
+    {
+        int currentJobWorkerRatio = _workerPool.Count == 0 ? _jobQueue.Count : _jobQueue.Count / _workerPool.Count;
+
+        _logger.LogInformation("[WORKERS SUMMARY]:\n\tCurrent workers: {WorkerCount}\n\tPending jobs: {PendingJobs}\n\tJob-to-worker threshold: {Threshold}\n\tJob-to-worker ratio: {Ratio}",
+                                _workerPool.Count, _jobQueue.Count, _jobsToWorkerThreshold, currentJobWorkerRatio);
     }
 
     private void addNewWorker()
@@ -285,12 +324,18 @@ public class JobQueueManager
         });
     }
 
+    private void ResetAndReleaseSignal()
+    {
+        _queueAssignSignal.Wait(0);
+        _queueAssignSignal.Release();
+    }
+
     private WorkerNode createWorkerNode()
     {
         return new WorkerNode(
             _signalRNotifier,
             _loggerFactory.CreateLogger<WorkerNode>(),
-            _jobsInQueueSignal,
+            ResetAndReleaseSignal,
             _cancellationToken
         );
     }
