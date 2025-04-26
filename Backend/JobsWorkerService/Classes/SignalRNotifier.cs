@@ -50,13 +50,13 @@ namespace JobsWorkerService.Classes
         {
             try
             {
-                _logger.LogInformation("Invoking event: {EventType} with payload: {Payload}", eventType, payload);
+                _logger.LogDebug("Invoking event: [{EventType}] with payload:\n{Payload}", eventType, payload);
 
                 await _signalRClient.SendEvent(eventType.ToString(), payload);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while invoking event: {EventType} with payload: {Payload}", eventType, payload);
+                _logger.LogError(ex, "Error occurred while invoking event: {EventType} with payload:\n{Payload}", eventType, payload);
             }
         }
     }

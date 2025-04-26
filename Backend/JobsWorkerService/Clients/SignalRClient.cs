@@ -60,7 +60,7 @@ namespace JobsWorkerService.Clients
 
                 _connection.On<string, object>("HandleEvent", (eventName, payload) =>
                 {
-                    _logger.LogInformation("Event received: {EventName} with payload: {Payload}", eventName, payload);
+                    _logger.LogInformation("Event received: [{EventName}] with payload:\n{Payload}", eventName, payload);
                 });
             }
             catch (Exception ex)
@@ -75,7 +75,7 @@ namespace JobsWorkerService.Clients
             try
             {
                 await _connection.InvokeAsync("HandleEvent", eventName, payload);
-                _logger.LogDebug("Successfully invoked SignalR event [{EventName}]", eventName);
+                _logger.LogDebug("Sent [{EventName}] event", eventName);
             }
             catch (Exception ex)
             {
@@ -89,7 +89,7 @@ namespace JobsWorkerService.Clients
             try
             {
                 await _connection.InvokeAsync("HandleEvent", eventName, null);
-                _logger.LogDebug("Successfully invoked SignalR event [{EventName}]", eventName);
+                _logger.LogDebug("Sent event [{EventName}]", eventName);
             }
             catch (Exception ex)
             {

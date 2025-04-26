@@ -6,26 +6,25 @@ namespace JobsWorkerService.Classes
 {
     public class WorkerNode
     {
+        private static readonly Random _random = new(); // MOCK process timer.
         public bool IsAvailable => CurrentJob == null;
         public string NodeID { get; } = $"WORKER_{Guid.NewGuid()}";
-        private readonly SignalRNotifier _signalRNotifier;
+        public Job? CurrentJob;
         private readonly ILogger<WorkerNode> _logger;
-
-        // Cancellation tokens
+        private readonly SignalRNotifier _signalRNotifier;
         private readonly CancellationToken _serviceCancellationToken;
         private CancellationTokenSource? _jobCancellationTokenSource;
         private CancellationToken jobCancellationToken => _jobCancellationTokenSource?.Token ?? CancellationToken.None;
 
-        public Job? CurrentJob;
+        private readonly SemaphoreSlim _assignSignal;
 
-        private readonly Random _random = new(); // MOCK process timer.
-
-        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, CancellationToken serviceCancellationToken)
+        public WorkerNode(SignalRNotifier signalRNotifier, ILogger<WorkerNode> logger, SemaphoreSlim jobsInQueueSignal, CancellationToken serviceCancellationToken)
         {
-            _signalRNotifier = signalRNotifier;
             _logger = logger;
+            _signalRNotifier = signalRNotifier;
             _serviceCancellationToken = serviceCancellationToken;
-            _logger.LogInformation("Worker {NodeID} created.", NodeID);
+            _logger.LogInformation("Worker [{NodeID}] has been created.", NodeID);
+            _assignSignal = jobsInQueueSignal;
         }
 
         private async Task RunMockProcessing(Guid jobId)
@@ -85,6 +84,7 @@ namespace JobsWorkerService.Classes
                         CurrentJob = null;
                         _jobCancellationTokenSource?.Dispose();
                         _jobCancellationTokenSource = null;
+                        _assignSignal.Release();
                     }
                 }
             }
@@ -103,8 +103,7 @@ namespace JobsWorkerService.Classes
             _jobCancellationTokenSource?.Dispose();
             _jobCancellationTokenSource = new CancellationTokenSource();
             CurrentJob = job;
-            // TODO : return after recover check
-            //_logger.LogDebug("Worker {NodeID} assigned job {JobID}", NodeID, job.JobID);
+            _logger.LogDebug("Worker [{NodeID}] got job \n[{JobID}]", NodeID, job.JobID);
         }
 
         public void StopJob()

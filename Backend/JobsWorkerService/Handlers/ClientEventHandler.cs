@@ -1,7 +1,6 @@
 ﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
-using JobsWorkerService.Managers;
 
 namespace JobsWorkerService.Handlers
 {

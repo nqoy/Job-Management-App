@@ -3,7 +3,6 @@ using JobsClassLibrary.Utils;
 using JobsWorkerService.Classes;
 using JobsWorkerService.Clients;
 using JobsWorkerService.Handlers;
-using JobsWorkerService.Managers;
 using Microsoft.Extensions.Logging.Console;
 
 namespace JobsWorkerService.StartupInitialization;

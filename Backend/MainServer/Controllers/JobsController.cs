@@ -104,7 +104,7 @@ namespace MainServer.Controllers
         [HttpDelete("/status/{status}")]
         public async Task<IActionResult> DeleteJobsByStatus(string status)
         {
-            if (!Enum.TryParse<JobStatus>(status, true, out JobStatus parsedStatus))
+            if (!Enum.TryParse(status, true, out JobStatus parsedStatus))
             {
                 _logger.LogWarning("Invalid status: {Status}. The status is not a valid JobStatus enum value.", status);
                 return base.BadRequest("Invalid status. The status must be a valid JobStatus enum value.");

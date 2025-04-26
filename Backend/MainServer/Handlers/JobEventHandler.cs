@@ -73,7 +73,7 @@ namespace MainServer.Handlers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to update progress for job {JobID} with progress {JobProgress}.", jobProgress.JobID, jobProgress.Progress);
+                    _logger.LogError(ex, "Failed to update progress for job {JobID} with progress [{JobProgress}%].", jobProgress.JobID, jobProgress.Progress);
                 }
             }
             else

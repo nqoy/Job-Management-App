@@ -35,7 +35,7 @@ namespace MainServer.Hubs
             var logBuilder = new StringBuilder();
 
             await Groups.AddToGroupAsync(connectionId, serviceName);
-            logBuilder.AppendFormat("Client [{0}] CONNECTED, id : {1}", serviceName, connectionId);
+            logBuilder.AppendFormat("Client [{0}] CONNECTED, id : [{1}]", serviceName, connectionId);
 
             await base.OnConnectedAsync();
 
@@ -54,7 +54,7 @@ namespace MainServer.Hubs
             }
             var logBuilder = new StringBuilder();
 
-            logBuilder.AppendFormat("Client [{0}] DISCONNECTED, id : {1} .", serviceName, connectionId);
+            logBuilder.AppendFormat("Client [{0}] DISCONNECTED, id : [{1}] .", serviceName, connectionId);
             if (exception != null)
             {
                 logBuilder.AppendFormat(" Disconnection reason: {0}", exception.Message);
@@ -69,24 +69,16 @@ namespace MainServer.Hubs
             string? serviceName = Context.GetHttpContext()?.Request.Query["service"].ToString()
                                   ?? $"UnknownService with id : {Context.ConnectionId}";
 
-            _logger.LogDebug(
-                "Received event [{EventType}] from [{ServiceName}] with payload: {@Payload}",
+            _logger.LogDebug("Received event [{EventType}] from [{ServiceName}] with payload:\n{Payload}",
                 eventType, serviceName, payload);
 
             try
             {
                 await _jobEventListener.HandleEventAsync(eventType, payload, serviceName);
-
-                _logger.LogDebug(
-                    "Handled event [{EventType}] from [{ServiceName}].",
-                    eventType, serviceName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Error handling event [{EventType}] from [{ServiceName}].",
-                    eventType, serviceName);
+                _logger.LogError(ex,"Error handling event [{EventType}] from [{ServiceName}].",eventType, serviceName);
             }
         }
     }

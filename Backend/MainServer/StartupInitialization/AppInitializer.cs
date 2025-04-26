@@ -25,7 +25,9 @@ namespace MainServer.StartupInitialization
                     options.FormatterName = CustomConsoleFormatter.FormatterName;
                 });
                 logging.AddConsoleFormatter<CustomConsoleFormatter, ConsoleFormatterOptions>();
+                logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
             });
+
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
@@ -46,7 +48,9 @@ namespace MainServer.StartupInitialization
             builder.Services.AddScoped<JobEventManager>();
             builder.Services.AddScoped<JobEventHandler>();
             builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
 
             // CORS policy
             builder.Services.AddCors(options =>

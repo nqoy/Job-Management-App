@@ -180,9 +180,6 @@ namespace MainServer.Managers
             try
             {
                 await _eventManager.SendStopJobToWorkerService(jobID);
-                job.Status = JobStatus.Stopped;
-                await _db.SaveChangesAsync();
-
                 message = $"Job {jobID} stopped.";
                 _logger.LogDebug("Stopped job {JobId}.", jobID);
 
@@ -312,7 +309,7 @@ namespace MainServer.Managers
                 try
                 {
                     await _db.SaveChangesAsync();
-                    _logger.LogDebug("Updated progress for job [{JobId}] to [{JobProgress}].", jobID, jobProgress);
+                    _logger.LogDebug("Updated job [{JobId}] progress :\n [{JobStatus}]  [{JobProgress}%].", jobID, updatedJobStatus, jobProgress);
                 }
                 catch (Exception ex)
                 {
@@ -386,27 +383,46 @@ namespace MainServer.Managers
             try
             {
                 List<QueuedJob> queuedJobs = await (
-                    from job in _db.Jobs
-                    join backup in _db.QueueBackupJobs
-                    on job.JobID equals backup.JobID
+                    from backup in _db.QueueBackupJobs
+                    join job in _db.Jobs on backup.JobID equals job.JobID
                     select new QueuedJob
                     {
                         JobID = job.JobID,
                         Priority = job.Priority,
                         Status = JobStatus.Pending,
-                        QueuingTime = backup.QueuingTime,
-                    }).OrderBy(j => j.Priority).ThenBy(j => j.QueuingTime).ToListAsync();
+                        QueuingTime = backup.QueuingTime
+                    }).ToListAsync();
 
-                if (queuedJobs == null || queuedJobs.Count == 0)
-                {
-                    _logger.LogDebug("No queued jobs to send.");
-                    return;
-                }
-                List<Job> jobsToRun = queuedJobs.Cast<Job>().ToList();
+                List<QueuedJob> runningJobs = await (
+                    from job in _db.Jobs
+                    where job.Status == JobStatus.Running
+                    select new QueuedJob
+                    {
+                        JobID = job.JobID,
+                        Priority = job.Priority,
+                        Status = JobStatus.Pending,
+                        QueuingTime = 0
+                    }).ToListAsync();
+
+                // To avoid duplication of "Running" jobs already in QueueBackupJobs in case of an app crash.
+                // Backup occurs periodically and during system shutdown.
+                HashSet<Guid> existingJobIds = queuedJobs.Select(q => q.JobID).ToHashSet();
+
+                List<QueuedJob> filteredRunningJobs = runningJobs
+                    .Where(r => !existingJobIds.Contains(r.JobID))
+                    .ToList();
+
+                List<QueuedJob> combinedJobs = queuedJobs
+                    .Concat(filteredRunningJobs)
+                    .OrderBy(j => j.Priority)
+                    .ThenBy(j => j.QueuingTime)
+                    .ToList();
+
+                List<Job> jobsToRun = combinedJobs.Cast<Job>().ToList();
 
                 await _eventManager.SendJobsToWorkerService(jobsToRun);
 
-                _logger.LogDebug("Successfully sent {Count} queued jobs to worker service.", queuedJobs.Count);
+                _logger.LogDebug("Successfully sent {Count} jobs (queued + running) to worker service.", combinedJobs.Count);
             }
             catch (Exception ex)
             {

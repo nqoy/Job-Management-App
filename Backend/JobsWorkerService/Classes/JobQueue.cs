@@ -66,21 +66,6 @@ namespace JobsWorkerService.Classes
             }
         }
 
-        internal void RecoverQueue(List<QueuedJob> jobs)
-        {
-            lock (_queueLock)
-            {
-                if (jobs != null && jobs.Count > 0)
-                {
-                    _queue.Clear();
-                    foreach (QueuedJob job in jobs)
-                    {
-                        _queue.Enqueue(job, (job.Priority, job.QueuingTime));
-                    }
-                }
-            }
-        }
-
         internal bool MarkJobForLazyRemove(Guid jobID)
         {
             lock (_queueLock)
