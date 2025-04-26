@@ -8,6 +8,8 @@ namespace JobsWorkerService.Clients
     {
         private readonly HubConnection _connection;
         private readonly ILogger<SignalRClient> _logger;
+        private bool _firstConnectionDone = false;
+        public event Func<Task>? OnFirstConnected;
         public bool IsConnected => _connection.State == HubConnectionState.Connected;
 
         public SignalRClient(IOptions<SignalRSettings> settings, ILogger<SignalRClient> logger)
@@ -30,7 +32,7 @@ namespace JobsWorkerService.Clients
                     .WithUrl(connectionUrl)
                     .WithAutomaticReconnect()
                     .Build();
-                _logger.LogInformation("HubConnection built successfully.");
+                _logger.LogInformation("HubConnection built.");
             }
             catch (Exception ex)
             {
@@ -46,6 +48,20 @@ namespace JobsWorkerService.Clients
                 _logger.LogInformation("Starting SignalR connection...");
                 await _connection.StartAsync();
                 _logger.LogInformation("SignalR Connection State={State}", _connection.State);
+
+                if (!_firstConnectionDone)
+                {
+                    _firstConnectionDone = true;
+                    if (OnFirstConnected is not null)
+                    {
+                        await OnFirstConnected.Invoke();
+                    }
+                }
+
+                _connection.On<string, object>("HandleEvent", (eventName, payload) =>
+                {
+                    _logger.LogInformation("Event received: {EventName} with payload: {Payload}", eventName, payload);
+                });
             }
             catch (Exception ex)
             {
@@ -54,11 +70,25 @@ namespace JobsWorkerService.Clients
             }
         }
 
-        public async Task SendEvent(string eventName, params object[] args)
+        public async Task SendEvent(string eventName, object payload)
         {
             try
             {
-                await _connection.InvokeAsync("HandleEvent", eventName, args);
+                await _connection.InvokeAsync("HandleEvent", eventName, payload);
+                _logger.LogDebug("Successfully invoked SignalR event [{EventName}]", eventName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invoking SignalR event [{EventName}], error :\n{Message}", eventName, ex.Message);
+                throw;
+            }
+        }
+
+        public async Task SendEvent(string eventName)
+        {
+            try
+            {
+                await _connection.InvokeAsync("HandleEvent", eventName, null);
                 _logger.LogDebug("Successfully invoked SignalR event [{EventName}]", eventName);
             }
             catch (Exception ex)

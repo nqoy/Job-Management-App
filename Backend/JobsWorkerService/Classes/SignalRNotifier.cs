@@ -20,10 +20,30 @@ namespace JobsWorkerService.Classes
             await sendEvent(JobEvent.UpdateJobProgress, payload);
         }
 
-        internal async Task SendRecoverJobQueue(string serializedQueue)
+        internal async Task SendBackupJobQueue(string serializedQueue)
         {
            
-            await sendEvent(JobEvent.RecoverJobQueue, serializedQueue);
+            await sendEvent(JobEvent.JobQueueBackup, serializedQueue);
+        }
+
+        internal async Task SendRecoverJobQueue()
+        {
+
+            await sendEvent(JobEvent.JobQeueuRecovery);
+        }
+
+        private async Task sendEvent(JobEvent eventType)
+        {
+            try
+            {
+                _logger.LogInformation("Invoking event: {EventType}", eventType);
+
+                await _signalRClient.SendEvent(eventType.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while invoking event: {EventType}", eventType);
+            }
         }
 
         private async Task sendEvent(JobEvent eventType, object payload)

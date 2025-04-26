@@ -70,7 +70,7 @@ namespace MainServer.Hubs
                                   ?? $"UnknownService with id : {Context.ConnectionId}";
 
             _logger.LogDebug(
-                "Received event '{EventType}' from service '{ServiceName}' with payload: {@Payload}",
+                "Received event [{EventType}] from [{ServiceName}] with payload: {@Payload}",
                 eventType, serviceName, payload);
 
             try
@@ -78,17 +78,16 @@ namespace MainServer.Hubs
                 await _jobEventListener.HandleEventAsync(eventType, payload, serviceName);
 
                 _logger.LogDebug(
-                    "Handled event '{EventType}' from service '{ServiceName}' successfully.",
+                    "Handled event [{EventType}] from [{ServiceName}].",
                     eventType, serviceName);
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Error handling event '{EventType}' from service '{ServiceName}'.",
+                    "Error handling event [{EventType}] from [{ServiceName}].",
                     eventType, serviceName);
             }
         }
-
     }
 }

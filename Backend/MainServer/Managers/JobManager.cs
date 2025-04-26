@@ -183,7 +183,7 @@ namespace MainServer.Managers
                 job.Status = JobStatus.Stopped;
                 await _db.SaveChangesAsync();
 
-                message = $"Job {jobID} successfully stopped.";
+                message = $"Job {jobID} stopped.";
                 _logger.LogDebug("Stopped job {JobId}.", jobID);
 
                 return new ApiResponse
@@ -255,7 +255,7 @@ namespace MainServer.Managers
                 return new ApiResponse
                 {
                     IsSuccess = true,
-                    Message = $"Job {jobID} successfully restarted.",
+                    Message = $"Job {jobID} restarted.",
                 };
             }
             catch (Exception ex)

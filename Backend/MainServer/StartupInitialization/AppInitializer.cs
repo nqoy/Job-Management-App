@@ -7,17 +7,12 @@ using MainServer.Managers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 
-namespace MainServer.Initialization
+namespace MainServer.StartupInitialization
 {
     public static class AppInitializer
     {
-        public static void ConfigureServices(WebApplicationBuilder builder)
+        public static void ConfigureLogging(WebApplicationBuilder builder)
         {
-            builder.Services.AddControllers();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            // Register Custom Log Formatter
             builder.Services.AddLogging(logging =>
             {
                 logging.ClearProviders();
@@ -31,6 +26,13 @@ namespace MainServer.Initialization
                 });
                 logging.AddConsoleFormatter<CustomConsoleFormatter, ConsoleFormatterOptions>();
             });
+        }
+
+        public static void ConfigureServices(WebApplicationBuilder builder)
+        {
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
             // Bind and register SignalRSettings
             SignalRSettings signalRConfig = builder.Configuration.GetSection("SignalR").Get<SignalRSettings>()
@@ -57,10 +59,9 @@ namespace MainServer.Initialization
                           .SetIsOriginAllowed(_ => true);
                 });
             });
-            // Add Background Worker On Need
-            // builder.Services.AddHostedService<StartupBackgroundService>();
         }
 
+        // Configure the App
         public static void ConfigureApp(WebApplication app)
         {
             var signalRSettings = app.Services.GetRequiredService<SignalRSettings>();
@@ -85,7 +86,6 @@ namespace MainServer.Initialization
 
         public static void LogServerUrls(WebApplication app)
         {
-            var serverAddressesFeature = app.Services.GetRequiredService<IHostApplicationLifetime>();
             var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
             app.Lifetime.ApplicationStarted.Register(() =>

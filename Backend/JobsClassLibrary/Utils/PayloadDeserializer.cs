@@ -16,30 +16,41 @@ namespace JobsClassLibrary.Utils
 
             try
             {
-                if (payload is JsonElement jsonElement && jsonElement.ValueKind == JsonValueKind.Array && jsonElement.GetArrayLength() > 0)
+                if (payload is JsonElement jsonElement)
                 {
-                    var firstElement = jsonElement[0];
+                    JsonElement elementToDeserialize = jsonElement;
 
-                    if (firstElement.ValueKind == JsonValueKind.String)
+                    if (jsonElement.ValueKind == JsonValueKind.Array)
                     {
-                        var jsonString = firstElement.GetString();
-
-                        if (string.IsNullOrWhiteSpace(jsonString))
+                        if (jsonElement.GetArrayLength() == 0)
                         {
-                            logger.LogWarning("Payload contains an empty string.");
+                            logger.LogWarning("Payload array is empty.");
                             return false;
                         }
-                        if (jsonString == "[]")
+
+                        elementToDeserialize = jsonElement[0];
+                    }
+
+                    if (elementToDeserialize.ValueKind == JsonValueKind.Object)
+                    {
+                        deserializedObject = JsonSerializer.Deserialize<T>(elementToDeserialize.GetRawText(), options);
+                    }
+                    else if (elementToDeserialize.ValueKind == JsonValueKind.String)
+                    {
+                        string? innerJson = elementToDeserialize.GetString();
+
+                        if (string.IsNullOrWhiteSpace(innerJson))
                         {
-                            deserializedObject = Activator.CreateInstance<T>();
-                            return true;
+                            logger.LogWarning("Payload string is empty.");
+                            return false;
                         }
 
-                        deserializedObject = JsonSerializer.Deserialize<T>(jsonString, options);
+                        deserializedObject = JsonSerializer.Deserialize<T>(innerJson, options);
                     }
                     else
                     {
-                        deserializedObject = JsonSerializer.Deserialize<T>(firstElement.GetRawText(), options);
+                        logger.LogWarning("Unsupported ValueKind: {ValueKind}", elementToDeserialize.ValueKind);
+                        return false;
                     }
 
                     if (deserializedObject == null)
@@ -51,7 +62,7 @@ namespace JobsClassLibrary.Utils
                     return true;
                 }
 
-                logger.LogWarning("Invalid payload format.");
+                logger.LogWarning("Payload is not a JsonElement. Type: {PayloadType}", payload.GetType().FullName);
                 return false;
             }
             catch (Exception ex)
@@ -60,6 +71,5 @@ namespace JobsClassLibrary.Utils
                 return false;
             }
         }
-
     }
 }

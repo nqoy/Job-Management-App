@@ -2,7 +2,6 @@
 using JobsClassLibrary.Enums;
 using JobsWorkerService.Clients;
 using JobsWorkerService.Managers;
-using Newtonsoft.Json;
 
 namespace JobsWorkerService.Handlers
 {
@@ -25,7 +24,6 @@ namespace JobsWorkerService.Handlers
         {
             var eventHandlers = new List<(string EventName, Delegate Handler)>
             {
-                (JobEvent.RecoverJobQueue.ToString(), handleRecoverJobQueue),
                 (JobEvent.JobRecive.ToString(), handleJobsReceived),
                 (JobEvent.StopJob.ToString(), handleStopJob),
             };
@@ -45,14 +43,6 @@ namespace JobsWorkerService.Handlers
             else if (handler is Action<Guid> guidHandler)
             {
                 _signalRClient.RegisterEventHandler(eventName, guidHandler);
-            }
-            else if (handler is Action<List<Guid>> guidListHandler)
-            {
-                _signalRClient.RegisterEventHandler(eventName, guidListHandler);
-            }
-            else if (handler is Action<List<Guid>, JobStatus> statusHandler)
-            {
-                _signalRClient.RegisterEventHandler(eventName, statusHandler);
             }
             else if (handler is Action<string> serilizedHandler)
             {
@@ -74,22 +64,6 @@ namespace JobsWorkerService.Handlers
         {
             _logger.LogInformation("Received [{event}] event for {jobID} job.",JobEvent.StopJob, jobID);
             _jobQueueManager.StopJobAsync(jobID);
-        }
-
-        private void handleRecoverJobQueue(string serializedQueue)
-        {
-            List<QueuedJob> jobs = JsonConvert.DeserializeObject<List<QueuedJob>>(serializedQueue);
-
-            if (jobs != null)
-            {
-                _logger.LogInformation("Received [{event}] for {UpdateCount} jobs.", JobEvent.RecoverJobQueue, jobs.Count);
-
-                _jobQueueManager.RecoverJobQueue(jobs);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to deserialize the job queue. No jobs were recovered.");
-            }
         }
     }
 }

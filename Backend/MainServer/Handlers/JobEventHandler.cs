@@ -1,98 +1,127 @@
 ﻿using JobsClassLibrary.Classes.Job;
 using JobsClassLibrary.Enums;
-using JobsClassLibrary.Interfaces;
 using JobsClassLibrary.Utils;
 using MainServer.Managers;
-using System.Text.Json;
 
 namespace MainServer.Handlers
 {
     public delegate Task EventHandlerDelegate(string serviceName, object payload);
+    public delegate Task EventHandlerNoPayloadDelegate(string serviceName);
 
     public class JobEventHandler
     {
         private readonly JobManager _jobManager;
         private readonly ILogger<JobEventHandler> _logger;
-        private readonly Dictionary<string, EventHandlerDelegate> _handlers;
+        private readonly Dictionary<string, EventHandlerDelegate> _handlersWithPayload;
+        private readonly Dictionary<string, EventHandlerNoPayloadDelegate> _handlersWithoutPayload;
 
         public JobEventHandler(JobManager jobManager, ILogger<JobEventHandler> logger)
         {
             _logger = logger;
             _jobManager = jobManager;
-            _handlers = new Dictionary<string, EventHandlerDelegate>(StringComparer.OrdinalIgnoreCase)
+
+            _handlersWithPayload = new Dictionary<string, EventHandlerDelegate>(StringComparer.OrdinalIgnoreCase)
             {
                 [nameof(JobEvent.UpdateJobProgress)] = HandleUpdateJobProgress,
-                [nameof(JobEvent.RecoverJobQueue)] = HandleRecoverJobQeueu,
+                [nameof(JobEvent.JobQueueBackup)] = HandleJobQueueBackup,
+            };
+
+            _handlersWithoutPayload = new Dictionary<string, EventHandlerNoPayloadDelegate>(StringComparer.OrdinalIgnoreCase)
+            {
+                [nameof(JobEvent.JobQeueuRecovery)] = HandleJobQueueRecovery,
             };
         }
 
-        public async Task HandleEventAsync(string eventType, object payload, string serviceName)
+        public async Task HandleEventAsync(string eventType, object? payload, string serviceName)
         {
-            if (!_handlers.TryGetValue(eventType, out var handler))
+            if (_handlersWithPayload.ContainsKey(eventType))
             {
-                _logger.LogError("Unknown event '{Event}' from service '{Service}'", eventType, serviceName);
-                throw new InvalidOperationException($"Unknown event type: {eventType}");
+                if (payload == null)
+                {
+                    _logger.LogWarning("Expected payload for event [{EventType}] but received null.", eventType);
+                }
+
+                var handlerWithPayload = _handlersWithPayload[eventType];
+                await handlerWithPayload(serviceName, payload!);
+                return;
             }
 
-            try
+            if (_handlersWithoutPayload.TryGetValue(eventType, out var handlerWithoutPayload))
             {
-                await handler(serviceName, payload);
+                await handlerWithoutPayload(serviceName);
+                return;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error handling event '{Event}' from service '{Service}'", eventType, serviceName);
-                throw;
-            }
+
+            _logger.LogError("Unknown event [{EventType}] from [{ServiceName}]", eventType, serviceName);
+            throw new InvalidOperationException($"Unknown event type: {eventType}");
         }
 
         private async Task HandleUpdateJobProgress(string serviceName, object payload)
         {
+
             if (!PayloadDeserializer.TryParsePayloadDynamic(payload, _logger, out JobProgress? jobProgress))
             {
-                _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobProgress.", serviceName);
+                _logger.LogWarning("[{ServiceName}] sent invalid payload for UpdateJobProgress.", serviceName);
                 return;
             }
 
-            try
+            if (jobProgress != null)
             {
-                if (jobProgress != null)
+                try
                 {
                     await _jobManager.UpdateJobProgress(jobProgress.JobID, jobProgress.Status, jobProgress.Progress);
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("JobProgress is null, unable to update progress.");
+                    _logger.LogError(ex, "Failed to update progress for job {JobID} with progress {JobProgress}.", jobProgress.JobID, jobProgress.Progress);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Failed to update progress for job {JobID} with progress {JobProgress}.", jobProgress?.JobID, jobProgress?.Progress);
+                _logger.LogWarning("Parsed JobProgress is null, cannot update progress.");
             }
         }
 
-        private async Task HandleRecoverJobQeueu(string serviceName, object payload)
+        private async Task HandleJobQueueBackup(string serviceName, object payload)
         {
             if (!PayloadDeserializer.TryParsePayloadDynamic(payload, _logger, out List<QueueBackupJob>? queuedJobs))
             {
-                // TODO : Handle empty list
-                _logger.LogWarning("Service '{Service}' sent invalid payload for UpdateJobProgress.", serviceName);
+                _logger.LogWarning("[{ServiceName}] sent invalid payload for JobQueueBackup.", serviceName);
+                return;
+            }
+
+            if (queuedJobs != null)
+            {
+                try
+                {
+                    await _jobManager.SaveQueueBackupData(queuedJobs);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to save job queue backup from service {ServiceName}.", serviceName);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Parsed QueueBackupJobs is null, cannot save queue backup.");
+            }
+        }
+
+        private async Task HandleJobQueueRecovery(string serviceName)
+        {
+            if (!string.Equals(serviceName, SystemService.WorkerService.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Received JobQueueRecovery event from unexpected service: {ServiceName}", serviceName);
                 return;
             }
 
             try
             {
-                if (queuedJobs != null)
-                {
-                    await _jobManager.SaveQueueBackupData(queuedJobs);
-                }
-                else
-                {
-                    _logger.LogWarning("JobProgress is null, unable to update progress.");
-                }
+                await _jobManager.SendRecoveryQueuedJobsToWorkerService();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to send job queue backup : {ex}");
+                _logger.LogError(ex, "Failed to send recovery queued jobs to WorkerService.");
             }
         }
     }

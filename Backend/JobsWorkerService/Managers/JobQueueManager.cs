@@ -90,7 +90,7 @@ namespace JobsWorkerService.Managers
             try
             {
                 _logger.LogDebug("Backing up job queue...");
-                await _signalRNotifier.SendRecoverJobQueue(_jobQueue.Serialize());
+                await _signalRNotifier.SendBackupJobQueue(_jobQueue.Serialize());
             }
             catch (Exception ex)
             {

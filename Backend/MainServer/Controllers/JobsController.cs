@@ -35,7 +35,7 @@ namespace MainServer.Controllers
                     return StatusCode(500, "An error occurred while creating the job.");
                 }
 
-                _logger.LogDebug("Job created successfully. Job: {@Job}", job);
+                _logger.LogDebug("Job created. Job: {@Job}", job);
 
                 return Ok(job);
             }
@@ -82,7 +82,7 @@ namespace MainServer.Controllers
 
                 if (isSuccess)
                 {
-                    _logger.LogDebug("Job deleted successfully. JobID: {JobID}", guid);
+                    _logger.LogDebug("Job deleted. JobID: {JobID}", guid);
 
                     return Ok();
                 }
@@ -152,7 +152,7 @@ namespace MainServer.Controllers
 
                 if (response.IsSuccess)
                 {
-                    _logger.LogDebug("Job stopped successfully. JobID: {JobID}", guid);
+                    _logger.LogDebug("Job stopped. JobID: {JobID}", guid);
 
                     return Ok(response);
                 }
@@ -206,7 +206,7 @@ namespace MainServer.Controllers
 
             if (response.IsSuccess)
             {
-                _logger.LogDebug("Job restarted successfully. JobID: {JobID}", guid);
+                _logger.LogDebug("Job restarted. JobID: {JobID}", guid);
 
                 return Ok(response);
             }
