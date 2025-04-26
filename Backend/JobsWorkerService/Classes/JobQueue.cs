@@ -6,7 +6,7 @@ namespace JobsWorkerService.Classes
 {
     internal class JobQueue
     {
-        private readonly PriorityQueue<QueuedJob, (JobPriority, long)> _queue = new();
+        private readonly PriorityQueue<QueuedJob, (int, long)> _queue = new();
         private readonly HashSet<Guid> _jobsMarkedForRemoval = [];
         private readonly object _queueLock = new();
 
@@ -15,7 +15,8 @@ namespace JobsWorkerService.Classes
             job.QueuingTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             lock (_queueLock)
             {
-                _queue.Enqueue(job, (job.Priority, job.QueuingTime));
+                // Priority queue handles the smallest value as highest priority (min-heap)
+                _queue.Enqueue(job, (-(int)job.Priority, job.QueuingTime));
             }
         }
 
