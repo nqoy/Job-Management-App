@@ -85,7 +85,7 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
     [JobID] INT PRIMARY KEY,  -- Primary key, JobID
     [Name] NVARCHAR(255) NOT NULL,  -- Job name, cannot be NULL
     [Status] INT NOT NULL,  -- Enum for Job Status (0: Pending, 1: InProgress, 2: Completed, etc.)
-    [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: Medium, 2: High, etc.)
+    [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: High, etc.)
     [CreatedAt] DATETIME NOT NULL,  -- Timestamp of when the job was created
     [StartedAt] DATETIME NOT NULL,  -- Timestamp of when the job started
     [CompletedAt] DATETIME NOT NULL,  -- Timestamp of when the job completed
@@ -122,7 +122,7 @@ Example appsettings.json configuration:
 ```json
 {
   "SignalR": {
-    "BaseUrl": "https://localhost:5001",
+    "BaseUrl": "https://localhost:5000",
     "HubPath": "/JobSignalRHub"
   },
   "ConnectionStrings": {
