@@ -6,7 +6,7 @@ The application leverages SignalR for real-time communication between the server
 Currently whe work time of the jobs are mocked and randomly generated from 1 second to 10 minutes.  
 
 ## 🔄 System Architecture
-![JobManagmentSystem drawio](https://github.com/user-attachments/assets/6ee44d1e-3209-4f40-a32c-519cb3b2aa4f)
+![JobManagmentSystem drawio](https://github.com/user-attachments/assets/ac85eb4e-c2b9-4507-b1c0-5bd0e9accb12)
 
 *System architecture diagram showing the flow of data between components*
 
@@ -85,7 +85,7 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
     [JobID] INT PRIMARY KEY,  -- Primary key, JobID
     [Name] NVARCHAR(255) NOT NULL,  -- Job name, cannot be NULL
     [Status] INT NOT NULL,  -- Enum for Job Status (0: Pending, 1: InProgress, 2: Completed, etc.)
-    [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: Medium, 2: High, etc.)
+    [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: High, etc.)
     [CreatedAt] DATETIME NOT NULL,  -- Timestamp of when the job was created
     [StartedAt] DATETIME NOT NULL,  -- Timestamp of when the job started
     [CompletedAt] DATETIME NOT NULL,  -- Timestamp of when the job completed
@@ -122,7 +122,7 @@ Example appsettings.json configuration:
 ```json
 {
   "SignalR": {
-    "BaseUrl": "https://localhost:5001",
+    "BaseUrl": "https://localhost:5000",
     "HubPath": "/JobSignalRHub"
   },
   "ConnectionStrings": {
