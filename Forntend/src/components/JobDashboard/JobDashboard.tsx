@@ -67,6 +67,12 @@ const JobDashboard: React.FC = () => {
           </div>
           <div className="summary-label">Pending</div>
         </div>
+        <div className="summary-card queued">
+          <div className="summary-value">
+            {countJobsByStatus(JobStatus.InQueue)}
+          </div>
+          <div className="summary-label">In Queue</div>
+        </div>
         <div className="summary-card running">
           <div className="summary-value">
             {countJobsByStatus(JobStatus.Running)}

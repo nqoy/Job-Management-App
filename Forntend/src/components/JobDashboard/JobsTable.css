@@ -126,8 +126,8 @@
   background-color: var(--status-stopped);
 }
 
-.progress-bar-fill.status-inqueue {
-  background-color: var(--status-inqueue);
+.progress-bar-fill.status-queued {
+  background-color: var(--status-queued);
 }
 
 .progress-text {

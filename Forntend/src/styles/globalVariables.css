@@ -17,7 +17,7 @@
   --status-completed: #2ecc71;
   --status-failed: #e74c3c;
   --status-stopped: #95a5a6;
-  --status-inqueue: #9b59b6;
+  --status-queued: #9b59b6;
 
   /* Priority Colors */
   --priority-regular: #3498db;
