@@ -86,8 +86,8 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
     [Status] INT NOT NULL,  -- Enum for Job Status (0: Pending, 1: InProgress, 2: Completed, etc.)
     [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: Medium, 2: High, etc.)
     [CreatedAt] DATETIME NOT NULL,  -- Timestamp of when the job was created
-    [StartedAt] DATETIME NULL,  -- Timestamp of when the job started
-    [CompletedAt] DATETIME NULL,  -- Timestamp of when the job completed
+    [StartedAt] DATETIME NOT NULL,  -- Timestamp of when the job started
+    [CompletedAt] DATETIME NOT NULL,  -- Timestamp of when the job completed
     [Progress] INT CHECK (Progress BETWEEN 0 AND 100),  -- Job progress (0 to 100%)
     [ErrorMessage] NVARCHAR(1000) NULL  -- Optional error message, can be NULL
 );
