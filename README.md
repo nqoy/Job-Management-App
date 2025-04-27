@@ -202,8 +202,8 @@ dotnet run --project MainServer/MainServer.csproj --launch-profile DebugConsole
 
 ## Frontend Setup ⚛️
 
-![image](https://github.com/user-attachments/assets/a8300263-c854-4cec-a449-c5d5eb67382b)
-![image](https://github.com/user-attachments/assets/e8b4e178-afe6-4caf-8347-718eb00f54ca)
+![image](https://github.com/user-attachments/assets/bab58ff6-aa74-4c75-96e3-07428b276deb)
+
 
 
 1. **Navigate to the Frontend Directory**
