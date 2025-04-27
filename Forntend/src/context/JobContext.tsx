@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Job, JobProgressUpdate } from "../modals/Job";
 import { fetchJobs } from "../services/jobApi";
-import signalRService from "../services/signalR";
+import signalRService from "../services/signalRService";
 
 interface JobContextType {
   jobs: Job[];

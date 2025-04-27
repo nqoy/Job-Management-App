@@ -14,7 +14,7 @@ const JobDashboard: React.FC = () => {
   const [isDeleteJobsModalOpen, setIsDeleteJobsModalOpen] = useState(false);
   const [selectedJobStatus, setSelectedJobStatus] = useState<JobStatus>(
     JobStatus.Failed
-  ); // Default to Failed
+  );
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDeleteJobs = async () => {
@@ -36,7 +36,6 @@ const JobDashboard: React.FC = () => {
 
   const hasCompletedJobs = countJobsByStatus(JobStatus.Completed) > 0;
   const hasFailedJobs = countJobsByStatus(JobStatus.Failed) > 0;
-  const hasStoppedJobs = countJobsByStatus(JobStatus.Stopped) > 0;
 
   return (
     <div className="job-dashboard">
@@ -50,7 +49,7 @@ const JobDashboard: React.FC = () => {
             Create New Job
           </button>
 
-          {(hasFailedJobs || hasStoppedJobs) && (
+          {(hasFailedJobs || hasCompletedJobs) && (
             <button
               className="btn-secondary"
               onClick={() => setIsDeleteJobsModalOpen(true)}
@@ -142,11 +141,11 @@ const JobDashboard: React.FC = () => {
           <label>
             <input
               type="radio"
-              value={JobStatus.Stopped}
-              checked={selectedJobStatus === JobStatus.Stopped}
-              onChange={() => setSelectedJobStatus(JobStatus.Stopped)}
+              value={JobStatus.Completed}
+              checked={selectedJobStatus === JobStatus.Completed}
+              onChange={() => setSelectedJobStatus(JobStatus.Completed)}
             />
-            Stopped Jobs
+            Completed Jobs
           </label>
         </div>
       </ConfirmationModal>
