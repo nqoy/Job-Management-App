@@ -6,7 +6,7 @@ The application leverages SignalR for real-time communication between the server
 Currently whe work time of the jobs are mocked and randomly generated from 1 second to 10 minutes.  
 
 ## 🔄 System Architecture
-![JobManagmentSystem drawio](https://github.com/user-attachments/assets/a0d14b43-0527-4c88-a332-568d22e78467)
+![JobManagmentSystem drawio](https://github.com/user-attachments/assets/ac85eb4e-c2b9-4507-b1c0-5bd0e9accb12)
 
 *System architecture diagram showing the flow of data between components*
 
