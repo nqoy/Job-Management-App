@@ -75,7 +75,7 @@ namespace JobsWorkerService.Clients
             try
             {
                 await _connection.InvokeAsync("HandleEvent", eventName, payload);
-                _logger.LogDebug("Sent [{EventName}] event with payload:\n{Payload}", eventName, payload);
+                _logger.LogDebug("Sent [{EventName}] event with payload:\n{@Payload}", eventName, payload);
             }
             catch (Exception ex)
             {

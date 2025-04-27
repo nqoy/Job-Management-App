@@ -122,8 +122,7 @@ public class JobQueueManager
         sendJobInQueueUpdate(job);
         _logger.LogDebug("Enqueued job {JobId} with priority {Priority}. Queue size is now {Count}.",
             job.JobID, job.Priority, _jobQueue.Count);
-
-        _queueAssignSignal.Release();
+        ResetAndReleaseSignal();
     }
 
     private void startInitialWorkerNodes()

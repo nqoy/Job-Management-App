@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Job, JobStatusUpdate } from "../modals/Job";
+import { Job, JobProgressUpdate } from "../modals/Job";
 import { fetchJobs } from "../services/jobApi";
 import signalRService from "../services/signalR";
 
@@ -41,8 +41,8 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
     signalRService.startConnection();
 
     // Subscribe to job status updates
-    const unsubscribe = signalRService.onJobStatusUpdate(
-      (update: JobStatusUpdate) => {
+    const unsubscribe = signalRService.onJobProgressUpdate(
+      (update: JobProgressUpdate) => {
         setJobs((prevJobs) =>
           prevJobs.map((job) =>
             job.jobID === update.jobID

@@ -101,7 +101,7 @@ namespace MainServer.Controllers
             }
         }
 
-        [HttpDelete("/status/{status}")]
+        [HttpDelete("status/{status}")]
         public async Task<IActionResult> DeleteJobsByStatus(string status)
         {
             if (!Enum.TryParse(status, true, out JobStatus parsedStatus))
@@ -133,7 +133,7 @@ namespace MainServer.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting jobs with status {Status}.", status);
-                return StatusCode(500, "An error occurred while deleting jobs.");
+                return StatusCode(500, $"An error occurred while deleting jobs : {ex.Message}");
             }
         }
 

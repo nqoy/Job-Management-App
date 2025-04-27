@@ -15,11 +15,9 @@ namespace MainServer.Managers
             await SendEvent(SystemService.WorkerService, JobEvent.JobRecive, jobs);
         }
 
-        public async Task SendJobProgressUpdateToJobsApp(Guid jobID, JobStatus jobStatus)
+        public async Task SendJobProgressUpdateToJobsApp(JobProgress jobProgress)
         {
-            object statusPayload = new { JobID = jobID, JobStatus = jobStatus };
-
-            await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobProgress, statusPayload);
+            await SendEvent(SystemService.JobsApp, JobEvent.UpdateJobProgress, jobProgress);
         }
 
         public async Task SendStopJobToWorkerService(Guid jobID)
@@ -36,7 +34,7 @@ namespace MainServer.Managers
             {
                 await _hubContext.Clients.Group(serviceToSend).SendAsync(eventName, payload);
 
-                _logger.LogDebug("Sent [{Event}] to [{Service}] with payload:\n{Payload}", eventName, serviceToSend, payload ?? "No payload");
+                _logger.LogDebug("Sent [{Event}] to [{Service}] with payload:\n{@Payload}", eventName, serviceToSend, payload ?? "No payload");
             }
             catch (Exception ex)
             {

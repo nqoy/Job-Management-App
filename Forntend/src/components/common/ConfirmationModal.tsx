@@ -11,6 +11,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -22,12 +23,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmText = "Confirm",
   cancelText = "Cancel",
   isLoading = false,
+  children,
 }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="confirmation-modal">
         <p className="confirmation-message">{message}</p>
-
+        {children}
         <div className="confirmation-actions">
           <button
             className="btn-secondary"

@@ -286,6 +286,14 @@ namespace MainServer.Managers
                 _logger.LogWarning("Attempted to update progress for job {JobId}, but it was not found.", jobID);
                 throw new InvalidOperationException($"Job {jobID} not found.");
             }
+            JobProgress jobProgression = new JobProgress()
+            {
+                JobID = jobID,
+                Status = updatedJobStatus,
+                Progress = jobProgress
+            };
+
+            await _eventManager.SendJobProgressUpdateToJobsApp(jobProgression);
 
 
             if (job.Status != updatedJobStatus)

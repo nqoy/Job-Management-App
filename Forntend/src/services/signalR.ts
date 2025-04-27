@@ -1,20 +1,20 @@
 import * as signalR from "@microsoft/signalR";
-import { JobStatusUpdate } from "../modals/Job";
+import { JobProgressUpdate } from "../modals/Job";
 
 class SignalRService {
   private connection: signalR.HubConnection | null = null;
-  private statusUpdateCallbacks: ((update: JobStatusUpdate) => void)[] = [];
+  private progressUpdateCallbacks: ((update: JobProgressUpdate) => void)[] = [];
 
   async startConnection() {
     if (this.connection) return;
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5000/jobHub")
+      .withUrl("http://localhost:5000/JobSignalRHub?service=JobsApp")
       .withAutomaticReconnect()
       .build();
 
-    this.connection.on("UpdateJobStatus", (update: JobStatusUpdate) => {
-      this.statusUpdateCallbacks.forEach((callback) => callback(update));
+    this.connection.on("UpdateJobProgress", (update: JobProgressUpdate) => {
+      this.progressUpdateCallbacks.forEach((callback) => callback(update));
     });
 
     try {
@@ -26,10 +26,10 @@ class SignalRService {
     }
   }
 
-  onJobStatusUpdate(callback: (update: JobStatusUpdate) => void) {
-    this.statusUpdateCallbacks.push(callback);
+  onJobProgressUpdate(callback: (update: JobProgressUpdate) => void) {
+    this.progressUpdateCallbacks.push(callback);
     return () => {
-      this.statusUpdateCallbacks = this.statusUpdateCallbacks.filter(
+      this.progressUpdateCallbacks = this.progressUpdateCallbacks.filter(
         (cb) => cb !== callback
       );
     };

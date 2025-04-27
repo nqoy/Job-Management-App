@@ -11,32 +11,20 @@ import "./JobDashboard.css";
 const JobDashboard: React.FC = () => {
   const { jobs, loading, error, refreshJobs } = useJobs();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isDeleteCompletedModalOpen, setIsDeleteCompletedModalOpen] =
-    useState(false);
-  const [isDeleteFailedModalOpen, setIsDeleteFailedModalOpen] = useState(false);
+  const [isDeleteJobsModalOpen, setIsDeleteJobsModalOpen] = useState(false);
+  const [selectedJobStatus, setSelectedJobStatus] = useState<JobStatus>(
+    JobStatus.Failed
+  ); // Default to Failed
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleDeleteCompleted = async () => {
+  const handleDeleteJobs = async () => {
     setIsProcessing(true);
     try {
-      await deleteJobsByStatus(JobStatus.Completed);
+      await deleteJobsByStatus(selectedJobStatus);
       await refreshJobs();
-      setIsDeleteCompletedModalOpen(false);
+      setIsDeleteJobsModalOpen(false);
     } catch (error) {
       console.error("Failed to delete jobs:", error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleDeleteFailed = async () => {
-    setIsProcessing(true);
-    try {
-      await deleteJobsByStatus(JobStatus.Failed);
-      await refreshJobs();
-      setIsDeleteFailedModalOpen(false);
-    } catch (error) {
-      console.error("Failed to delete failed jobs:", error);
     } finally {
       setIsProcessing(false);
     }
@@ -48,6 +36,7 @@ const JobDashboard: React.FC = () => {
 
   const hasCompletedJobs = countJobsByStatus(JobStatus.Completed) > 0;
   const hasFailedJobs = countJobsByStatus(JobStatus.Failed) > 0;
+  const hasStoppedJobs = countJobsByStatus(JobStatus.Stopped) > 0;
 
   return (
     <div className="job-dashboard">
@@ -61,21 +50,12 @@ const JobDashboard: React.FC = () => {
             Create New Job
           </button>
 
-          {hasCompletedJobs && (
+          {(hasFailedJobs || hasStoppedJobs) && (
             <button
               className="btn-secondary"
-              onClick={() => setIsDeleteCompletedModalOpen(true)}
+              onClick={() => setIsDeleteJobsModalOpen(true)}
             >
               Delete Jobs
-            </button>
-          )}
-
-          {hasFailedJobs && (
-            <button
-              className="btn-danger"
-              onClick={() => setIsDeleteFailedModalOpen(true)}
-            >
-              Delete Failed Jobs
             </button>
           )}
         </div>
@@ -112,12 +92,6 @@ const JobDashboard: React.FC = () => {
           </div>
           <div className="summary-label">Stopped</div>
         </div>
-        <div className="summary-card inqueue">
-          <div className="summary-value">
-            {countJobsByStatus(JobStatus.InQueue)}
-          </div>
-          <div className="summary-label">In Queue</div>
-        </div>
       </div>
 
       {error && (
@@ -144,27 +118,38 @@ const JobDashboard: React.FC = () => {
         <JobForm onClose={() => setIsCreateModalOpen(false)} />
       </Modal>
 
-      {/* Delete Completed Jobs Modal */}
+      {/* Delete Jobs Modal */}
       <ConfirmationModal
-        isOpen={isDeleteCompletedModalOpen}
-        onClose={() => setIsDeleteCompletedModalOpen(false)}
-        onConfirm={handleDeleteCompleted}
+        isOpen={isDeleteJobsModalOpen}
+        onClose={() => setIsDeleteJobsModalOpen(false)}
+        onConfirm={handleDeleteJobs}
         title="Delete Jobs"
-        message="Are you sure you want to delete all completed jobs? This action cannot be undone."
-        confirmText="Delete All"
+        message="Are you sure you want to delete jobs with the selected status?"
+        confirmText="Delete Selected Jobs"
         isLoading={isProcessing}
-      />
-
-      {/* Delete Failed Jobs Modal */}
-      <ConfirmationModal
-        isOpen={isDeleteFailedModalOpen}
-        onClose={() => setIsDeleteFailedModalOpen(false)}
-        onConfirm={handleDeleteFailed}
-        title="Delete Failed Jobs"
-        message="Are you sure you want to delete all failed jobs? This action cannot be undone."
-        confirmText="Delete All"
-        isLoading={isProcessing}
-      />
+      >
+        {/* Radio buttons to select status */}
+        <div className="delete-job-options">
+          <label>
+            <input
+              type="radio"
+              value={JobStatus.Failed}
+              checked={selectedJobStatus === JobStatus.Failed}
+              onChange={() => setSelectedJobStatus(JobStatus.Failed)}
+            />
+            Failed Jobs
+          </label>
+          <label>
+            <input
+              type="radio"
+              value={JobStatus.Stopped}
+              checked={selectedJobStatus === JobStatus.Stopped}
+              onChange={() => setSelectedJobStatus(JobStatus.Stopped)}
+            />
+            Stopped Jobs
+          </label>
+        </div>
+      </ConfirmationModal>
     </div>
   );
 };

@@ -37,7 +37,7 @@ export const deleteJob = async (jobId: string): Promise<void> => {
 };
 
 export const deleteJobsByStatus = async (status: JobStatus): Promise<void> => {
-  const response = await fetch(`${BASE_URL}/Jobs/${status}`, {
+  const response = await fetch(`${BASE_URL}/Jobs/status/${status}`, {
     method: "DELETE",
   });
 

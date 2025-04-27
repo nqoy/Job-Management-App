@@ -23,7 +23,7 @@ export interface Job {
   priority: JobPriority;
 }
 
-export interface JobStatusUpdate {
+export interface JobProgressUpdate {
   jobID: string;
   status: JobStatus;
   progress: number;
