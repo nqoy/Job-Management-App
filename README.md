@@ -224,7 +224,30 @@ dotnet run --project MainServer/MainServer.csproj --launch-profile DebugConsole
 ## Testing
 1. API endpints : ( From swagger/postman/front-app)
 ![image](https://github.com/user-attachments/assets/46fc95b1-b442-4797-ae54-ef5219e734ef)
-2. Job stress-test : The backend includes a folder named 'Queries' which as a query for creating 40 jobs at once.  
+```
+POST /Jobs
+Request body:
+{
+  "name": "string",
+  "priority": 0
+}
+
+GET /Jobs
+No request body.
+
+DELETE /Jobs/{jobID}
+No request body.
+
+DELETE /Jobs/status/{status}
+No request body.
+
+POST /Jobs/{jobID}/stop
+No request body.
+
+POST /Jobs/{jobID}/restart
+No request body.
+```
+3. Job stress-test : The backend includes a folder named 'Queries' which as a query for creating 40 jobs at once.  
    Run the query on the DB and restart the worker-service (or all), what will trigger the backup recovery worflow.
    Another way is to add jobs manually in a fast paced.
 
