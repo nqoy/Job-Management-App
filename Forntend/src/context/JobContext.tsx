@@ -12,6 +12,7 @@ import { handleJobProgressUpdate } from "../handlers/eventHandlers";
 import { JobProgressUpdate } from "../modals/Job";
 import useSignalRSubscription from "../hooks/useSignalREventSub";
 import signalRService from "../services/signalRService";
+import useLocalStorage from "../hooks/useLocalStorage";
 
 interface JobContextType {
   jobs: Job[];
@@ -25,7 +26,7 @@ const JobContext = createContext<JobContextType | undefined>(undefined);
 export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useLocalStorage<Job[]>("jobs", []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +34,9 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       const jobsData = await fetchJobs();
-      setJobs(jobsData);
+      const mergedJobs = mergeJobs(jobsData, jobs);
+
+      setJobs(mergedJobs);
       setError(null);
     } catch (err) {
       setError("Failed to fetch jobs");
@@ -42,6 +45,21 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
     }
   };
+
+  function mergeJobs(fetchedJobs: Job[], localJobs: Job[]): Job[] {
+    if (fetchedJobs.length === 0) return [];
+    if (localJobs.length === 0) return fetchedJobs;
+
+    const localJobsMap = new Map(localJobs.map((job) => [job.jobID, job]));
+
+    return fetchedJobs.map((job) => {
+      const localJob = localJobsMap.get(job.jobID);
+      if (localJob) {
+        return { ...job, progress: localJob.progress };
+      }
+      return job;
+    });
+  }
 
   useEffect(() => {
     const initialize = async () => {
