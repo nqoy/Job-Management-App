@@ -12,12 +12,13 @@ Currently whe work time of the jobs are mocked and randomly generated from 1 sec
 
 ## ✨ Key Features
 - ⚡ Real-time job monitoring with live updates of job progress and status via SignalR
-- 🔄 Priority-based job queuing system using priority queue ordering: 1.Priority 2.Queuing time
 - 🌐 Distributed job processing architecture via worker nodes
 - 📊 Detailed job status tracking and error handling
-- 🖥️ Interactive dashboard for job management
 - ⚕️ Backup & Recovery workflow for queued/runing jobs
 - 🗒️ Dynamic settings that can be easily changed
+- 🖥️ Interactive dashboard for job management
+- 🔄 Priority-based job queuing system using priority queue ordering: 1.Priority 2.Queuing time
+- ⚖️ Horizontal scaling of worker nodes to handle large overhead and ensure optimal performance under heavy load.
 
 ## 💻 Tech Stack
 
