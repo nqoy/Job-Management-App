@@ -69,9 +69,9 @@
   color: var(--status-stopped);
 }
 
-.status-badge.status-inqueue {
+.status-badge.status-queued {
   background-color: rgba(155, 89, 182, 0.1);
-  color: var(--status-inqueue);
+  color: var(--status-queued);
 }
 
 .priority-badge {
