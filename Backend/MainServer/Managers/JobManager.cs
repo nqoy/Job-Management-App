@@ -428,9 +428,12 @@ namespace MainServer.Managers
 
                 List<Job> jobsToRun = combinedJobs.Cast<Job>().ToList();
 
+                if (jobsToRun.Count == 0)
+                    return;
+                
                 await _eventManager.SendJobsToWorkerService(jobsToRun);
 
-                _logger.LogDebug("Successfully sent {Count} jobs to worker service.", combinedJobs.Count);
+                _logger.LogDebug("Sent {Count} jobs to worker service.", combinedJobs.Count);
             }
             catch (Exception ex)
             {
