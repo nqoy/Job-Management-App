@@ -33,7 +33,7 @@ export const getStatusLabel = (status: JobStatus): string => {
   }
 };
 
-export const getStatusClass = (status: JobStatus): string => {
+export const getStatusCssClass = (status: JobStatus): string => {
   switch (status) {
     case JobStatus.Pending:
       return "status-pending";
@@ -46,7 +46,7 @@ export const getStatusClass = (status: JobStatus): string => {
     case JobStatus.Stopped:
       return "status-stopped";
     case JobStatus.InQueue:
-      return "status-inqueue";
+      return "status-queued";
     default:
       return "";
   }

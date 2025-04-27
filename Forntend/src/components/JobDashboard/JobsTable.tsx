@@ -3,20 +3,20 @@ import { Job, JobStatus } from "../../modals/Job";
 import {
   formatTimestamp,
   getStatusLabel,
-  getStatusClass,
+  getStatusCssClass,
   getPriorityLabel,
   getPriorityClass,
 } from "../../utils/jobFormatter";
 import { stopJob, restartJob, deleteJob } from "../../services/jobApi";
 import { useJobs } from "../../context/JobContext";
 import ConfirmationModal from "../common/ConfirmationModal";
-import "./JobTable.css";
+import "./JobsTable.css";
 
-interface JobTableProps {
+interface JobsTableProps {
   jobs: Job[];
 }
 
-const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
+const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
   const { refreshJobs } = useJobs();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [modalType, setModalType] = useState<
@@ -124,11 +124,11 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
     }
   };
 
-  const canStop = (job: Job) =>
+  const isJobStoppable = (job: Job) =>
     job.status === JobStatus.Running || job.status === JobStatus.Pending;
-  const canRestart = (job: Job) =>
+  const isJobRestartable = (job: Job) =>
     job.status === JobStatus.Failed || job.status === JobStatus.Stopped;
-  const canDelete = (job: Job) =>
+  const isJobDeletable = (job: Job) =>
     job.status === JobStatus.Completed || job.status === JobStatus.Failed;
 
   return (
@@ -167,7 +167,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                 </td>
                 <td>
                   <span
-                    className={`status-badge ${getStatusClass(job.status)}`}
+                    className={`status-badge ${getStatusCssClass(job.status)}`}
                   >
                     {getStatusLabel(job.status)}
                   </span>
@@ -175,7 +175,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                 <td>
                   <div className="progress-bar">
                     <div
-                      className={`progress-bar-fill ${getStatusClass(
+                      className={`progress-bar-fill ${getStatusCssClass(
                         job.status
                       )}`}
                       style={{ width: `${job.progress}%` }}
@@ -187,7 +187,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                 <td>{formatTimestamp(job.completedAt)}</td>
                 <td>
                   <div className="action-buttons">
-                    {canStop(job) && (
+                    {isJobStoppable(job) && (
                       <button
                         className="action-button stop"
                         title="Stop Job"
@@ -196,7 +196,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                         Stop
                       </button>
                     )}
-                    {canRestart(job) && (
+                    {isJobRestartable(job) && (
                       <button
                         className="action-button restart"
                         title="Restart Job"
@@ -205,7 +205,7 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
                         Restart
                       </button>
                     )}
-                    {canDelete(job) && (
+                    {isJobDeletable(job) && (
                       <button
                         className="action-button delete"
                         title="Delete Job"
@@ -227,4 +227,4 @@ const JobTable: React.FC<JobTableProps> = ({ jobs }) => {
   );
 };
 
-export default JobTable;
+export default JobsTable;

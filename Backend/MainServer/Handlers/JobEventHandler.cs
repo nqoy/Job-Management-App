@@ -28,7 +28,7 @@ namespace MainServer.Handlers
 
             _handlersWithoutPayload = new Dictionary<string, EventHandlerNoPayloadDelegate>(StringComparer.OrdinalIgnoreCase)
             {
-                [nameof(JobEvent.JobQeueuRecovery)] = HandleJobQueueRecovery,
+                [nameof(JobEvent.JobQueueRecovery)] = HandleJobQueueRecovery,
             };
         }
 

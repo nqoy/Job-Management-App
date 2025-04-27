@@ -70,8 +70,8 @@
   border-top: 3px solid var(--status-stopped);
 }
 
-.summary-card.inqueue {
-  border-top: 3px solid var(--status-inqueue);
+.summary-card.queued {
+  border-top: 3px solid var(--status-queued);
 }
 
 .error-banner {

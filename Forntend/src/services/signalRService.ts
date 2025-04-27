@@ -1,5 +1,6 @@
 import * as signalR from "@microsoft/signalR";
 import { JobProgressUpdate } from "../modals/Job";
+import { JobEvent } from "../modals/JobEvent";
 
 class SignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -13,9 +14,14 @@ class SignalRService {
       .withAutomaticReconnect()
       .build();
 
-    this.connection.on("UpdateJobProgress", (update: JobProgressUpdate) => {
-      this.progressUpdateCallbacks.forEach((callback) => callback(update));
-    });
+    this.connection.on(
+      JobEvent.UpdateJobProgress,
+      (updatedProgress: JobProgressUpdate) => {
+        this.progressUpdateCallbacks.forEach((callback) =>
+          callback(updatedProgress)
+        );
+      }
+    );
 
     try {
       await this.connection.start();
@@ -26,13 +32,19 @@ class SignalRService {
     }
   }
 
-  onJobProgressUpdate(callback: (update: JobProgressUpdate) => void) {
+  subscribeToEvent(event: JobEvent, callback: (update: any) => void) {
     this.progressUpdateCallbacks.push(callback);
-    return () => {
+
+    this.connection?.on(event, callback);
+
+    const unsubscribe = () => {
+      this.connection?.off(event, callback);
       this.progressUpdateCallbacks = this.progressUpdateCallbacks.filter(
-        (cb) => cb !== callback
+        (existingCallback) => existingCallback !== callback
       );
     };
+
+    return unsubscribe;
   }
 
   async stopConnection() {

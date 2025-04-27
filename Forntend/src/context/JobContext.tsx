@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Job, JobProgressUpdate } from "../modals/Job";
+import { Job } from "../modals/Job";
 import { fetchJobs } from "../services/jobApi";
 import signalRService from "../services/signalRService";
+import { JobEvent } from "../modals/JobEvent";
+import { handleJobProgressUpdate } from "../handlers/eventHandlers";
 
 interface JobContextType {
   jobs: Job[];
@@ -23,7 +25,6 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       const jobsData = await fetchJobs();
-
       setJobs(jobsData);
       setError(null);
     } catch (err) {
@@ -35,26 +36,20 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    refreshJobs();
+    const initialize = async () => {
+      await refreshJobs();
+      await signalRService.startConnection();
+    };
 
-    // Start SignalR connection
-    signalRService.startConnection();
-
-    // Subscribe to job status updates
-    const unsubscribe = signalRService.onJobProgressUpdate(
-      (update: JobProgressUpdate) => {
-        setJobs((prevJobs) =>
-          prevJobs.map((job) =>
-            job.jobID === update.jobID
-              ? { ...job, status: update.status, progress: update.progress }
-              : job
-          )
-        );
-      }
+    const unsubscribeJobProgressUpdates = signalRService.subscribeToEvent(
+      JobEvent.UpdateJobProgress,
+      (update) => handleJobProgressUpdate(update, setJobs)
     );
 
+    initialize();
+
     return () => {
-      unsubscribe();
+      unsubscribeJobProgressUpdates();
       signalRService.stopConnection();
     };
   }, []);

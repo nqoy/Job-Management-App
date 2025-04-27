@@ -110,10 +110,10 @@ namespace MainServer.Controllers
                 return base.BadRequest("Invalid status. The status must be a valid JobStatus enum value.");
             }
 
-            if (parsedStatus != JobStatus.Failed && parsedStatus != JobStatus.Stopped)
+            if (parsedStatus != JobStatus.Failed && parsedStatus != JobStatus.Completed)
             {
-                _logger.LogWarning("Invalid status: {Status}. Only 'Failed' or 'Stopped' are allowed.", status);
-                return base.BadRequest("Invalid status. Only 'Failed' or 'Stopped' statuses are allowed.");
+                _logger.LogWarning("Invalid status: {Status}. Only 'Failed' or 'Completed' are allowed.", status);
+                return base.BadRequest("Invalid status. Only 'Failed' or 'Completed' statuses are allowed.");
             }
 
             try

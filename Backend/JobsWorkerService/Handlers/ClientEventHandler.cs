@@ -23,7 +23,7 @@ namespace JobsWorkerService.Handlers
         {
             var eventHandlers = new List<(string EventName, Delegate Handler)>
             {
-                (JobEvent.JobRecive.ToString(), handleJobsReceived),
+                (JobEvent.JobReceive.ToString(), handleJobsReceived),
                 (JobEvent.StopJob.ToString(), handleStopJob),
             };
 
@@ -51,7 +51,7 @@ namespace JobsWorkerService.Handlers
 
         private void handleJobsReceived(List<QueuedJob> jobs)
         {
-            _logger.LogInformation("Received [{event}] : {JobCount} jobs ", JobEvent.JobRecive, jobs.Count);
+            _logger.LogInformation("Received [{event}] : {JobCount} jobs ", JobEvent.JobReceive, jobs.Count);
 
             foreach (QueuedJob job in jobs)
             {

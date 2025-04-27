@@ -2,13 +2,13 @@ import React, { useState } from "react";
 import { createJob } from "../../services/jobApi";
 import { JobPriority } from "../../modals/Job";
 import { useJobs } from "../../context/JobContext";
-import "./JobForm.css";
+import "./JobCreationForm.css";
 
-interface JobFormProps {
+interface JobCreationFormProps {
   onClose: () => void;
 }
 
-const JobForm: React.FC<JobFormProps> = ({ onClose }) => {
+const JobCreationForm: React.FC<JobCreationFormProps> = ({ onClose }) => {
   const { refreshJobs } = useJobs();
   const [jobName, setJobName] = useState("");
   const [priority, setPriority] = useState<JobPriority>(JobPriority.Regular);
@@ -105,4 +105,4 @@ const JobForm: React.FC<JobFormProps> = ({ onClose }) => {
   );
 };
 
-export default JobForm;
+export default JobCreationForm;

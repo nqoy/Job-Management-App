@@ -29,7 +29,7 @@ namespace JobsWorkerService.Classes
         internal async Task SendRecoverJobQueue()
         {
 
-            await sendEvent(JobEvent.JobQeueuRecovery);
+            await sendEvent(JobEvent.JobQueueRecovery);
         }
 
         private async Task sendEvent(JobEvent eventType)

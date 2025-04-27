@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useJobs } from "../../context/JobContext";
 import { JobStatus } from "../../modals/Job";
-import JobTable from "./JobTable";
+import JobsTable from "./JobsTable";
 import Modal from "../common/Modal";
-import JobForm from "../JobForm/JobForm";
+import JobCreationForm from "../JobForm/JobCreationForm";
 import { deleteJobsByStatus } from "../../services/jobApi";
 import ConfirmationModal from "../common/ConfirmationModal";
 import "./JobDashboard.css";
@@ -105,7 +105,7 @@ const JobDashboard: React.FC = () => {
       {loading ? (
         <div className="loading-indicator">Loading jobs...</div>
       ) : (
-        <JobTable jobs={jobs} />
+        <JobsTable jobs={jobs} />
       )}
 
       {/* Create Job Modal */}
@@ -114,7 +114,7 @@ const JobDashboard: React.FC = () => {
         onClose={() => setIsCreateModalOpen(false)}
         title="Create New Job"
       >
-        <JobForm onClose={() => setIsCreateModalOpen(false)} />
+        <JobCreationForm onClose={() => setIsCreateModalOpen(false)} />
       </Modal>
 
       {/* Delete Jobs Modal */}
