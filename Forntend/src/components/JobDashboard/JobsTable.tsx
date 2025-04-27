@@ -17,7 +17,7 @@ interface JobsTableProps {
 }
 
 const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
-  const { refreshJobs } = useJobs();
+  const { setJobs, refreshJobs } = useJobs();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [modalType, setModalType] = useState<
     "delete" | "stop" | "restart" | null
@@ -45,6 +45,10 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
     setIsProcessing(true);
     try {
       await restartJob(selectedJob.jobID);
+      const updatedJobs = jobs.map((job) =>
+        job.jobID === selectedJob.jobID ? { ...job, progress: 0 } : job
+      );
+      setJobs(updatedJobs);
       await refreshJobs();
       closeModal();
     } catch (error) {

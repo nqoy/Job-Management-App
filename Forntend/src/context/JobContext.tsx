@@ -1,5 +1,7 @@
 import React, {
   createContext,
+  Dispatch,
+  SetStateAction,
   useCallback,
   useContext,
   useEffect,
@@ -19,6 +21,7 @@ interface JobContextType {
   loading: boolean;
   error: string | null;
   refreshJobs: () => Promise<void>;
+  setJobs: Dispatch<SetStateAction<Job[]>>;
 }
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -82,7 +85,7 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   return (
-    <JobContext.Provider value={{ jobs, loading, error, refreshJobs }}>
+    <JobContext.Provider value={{ jobs, loading, error, refreshJobs, setJobs }}>
       {children}
     </JobContext.Provider>
   );
