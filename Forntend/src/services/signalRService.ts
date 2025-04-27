@@ -1,10 +1,9 @@
 import * as signalR from "@microsoft/signalR";
-import { JobProgressUpdate } from "../modals/Job";
 import { JobEvent } from "../modals/JobEvent";
 
 class SignalRService {
   private connection: signalR.HubConnection | null = null;
-  private progressUpdateCallbacks: ((update: JobProgressUpdate) => void)[] = [];
+  private eventHandlers: { [event: string]: ((update: any) => void)[] } = {};
 
   async startConnection() {
     if (this.connection) return;
@@ -13,15 +12,6 @@ class SignalRService {
       .withUrl("http://localhost:5000/JobSignalRHub?service=JobsApp")
       .withAutomaticReconnect()
       .build();
-
-    this.connection.on(
-      JobEvent.UpdateJobProgress,
-      (updatedProgress: JobProgressUpdate) => {
-        this.progressUpdateCallbacks.forEach((callback) =>
-          callback(updatedProgress)
-        );
-      }
-    );
 
     try {
       await this.connection.start();
@@ -32,19 +22,34 @@ class SignalRService {
     }
   }
 
-  subscribeToEvent(event: JobEvent, callback: (update: any) => void) {
-    this.progressUpdateCallbacks.push(callback);
+  subscribeToEvent<T>(event: JobEvent, callback: (payload: T) => void) {
+    if (!this.eventHandlers[event]) {
+      this.eventHandlers[event] = [];
+    }
+    this.eventHandlers[event].push(callback);
 
-    this.connection?.on(event, callback);
+    if (this.connection) {
+      this.connection.on(event, (payload: T) => {
+        this.registerEventToHandler(event, payload);
+      });
+    }
 
     const unsubscribe = () => {
-      this.connection?.off(event, callback);
-      this.progressUpdateCallbacks = this.progressUpdateCallbacks.filter(
+      this.eventHandlers[event] = this.eventHandlers[event].filter(
         (existingCallback) => existingCallback !== callback
       );
+      if (this.eventHandlers[event].length === 0) {
+        this.connection?.off(event);
+      }
     };
 
     return unsubscribe;
+  }
+
+  private registerEventToHandler<T>(event: JobEvent, payload: T) {
+    if (this.eventHandlers[event]) {
+      this.eventHandlers[event].forEach((handler) => handler(payload));
+    }
   }
 
   async stopConnection() {

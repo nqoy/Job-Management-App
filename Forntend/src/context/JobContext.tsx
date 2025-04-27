@@ -1,9 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Job } from "../modals/Job";
 import { fetchJobs } from "../services/jobApi";
-import signalRService from "../services/signalRService";
 import { JobEvent } from "../modals/JobEvent";
 import { handleJobProgressUpdate } from "../handlers/eventHandlers";
+import { JobProgressUpdate } from "../modals/Job";
+import useSignalRSubscription from "../hooks/useSignalREventSub";
+import signalRService from "../services/signalRService";
 
 interface JobContextType {
   jobs: Job[];
@@ -37,22 +45,23 @@ export const JobProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const initialize = async () => {
-      await refreshJobs();
       await signalRService.startConnection();
+      await refreshJobs();
     };
-
-    const unsubscribeJobProgressUpdates = signalRService.subscribeToEvent(
-      JobEvent.UpdateJobProgress,
-      (update) => handleJobProgressUpdate(update, setJobs)
-    );
-
     initialize();
-
-    return () => {
-      unsubscribeJobProgressUpdates();
-      signalRService.stopConnection();
-    };
   }, []);
+
+  const handleJobProgressUpdateMemoized = useCallback(
+    (update: JobProgressUpdate) => {
+      handleJobProgressUpdate(update, setJobs);
+    },
+    []
+  );
+
+  useSignalRSubscription<JobProgressUpdate>(
+    JobEvent.UpdateJobProgress,
+    handleJobProgressUpdateMemoized
+  );
 
   return (
     <JobContext.Provider value={{ jobs, loading, error, refreshJobs }}>

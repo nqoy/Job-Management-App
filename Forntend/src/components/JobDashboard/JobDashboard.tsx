@@ -108,7 +108,7 @@ const JobDashboard: React.FC = () => {
         <JobsTable jobs={jobs} />
       )}
 
-      {/* Create Job Modal */}
+      {/* Job Creation Modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
