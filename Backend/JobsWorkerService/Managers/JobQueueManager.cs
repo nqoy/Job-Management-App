@@ -14,7 +14,7 @@ public class JobQueueManager
     private readonly ILogger<JobQueueManager> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly JobQueue _jobQueue = new();
-
+    private bool isScalingDown = false;
     private bool _queueChangedSinceLastBackup = false;
     private long _lastScaleTime = 0;
 
@@ -138,13 +138,30 @@ public class JobQueueManager
     {
         while (!_cancellationTokenSource.Token.IsCancellationRequested)
         {
-            await _queueAssignSignal.WaitAsync(_cancellationToken);
-            bool isScalingDown = scaleWorkers();
-
-            if (!isScalingDown)
+            try
             {
-                assignJobsToAvailableWorkers();
+                await _queueAssignSignal.WaitAsync(_cancellationToken);
+
+                while (_jobQueue.Count > 0 && _workerPool.Any(w => w.IsAvailable))
+                {
+                    if (!isScalingDown)
+                    {
+                        assignJobsToAvailableWorkers();
+                    }
+                }
+                isScalingDown = scaleWorkers();
+
             }
+            catch (OperationCanceledException)
+            {
+                _logger.LogError("assignAndScaleLoop operation cancelled");
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in assign and scale loop");
+            }
+
             await Task.Delay(500, _cancellationToken);
         }
     }
@@ -156,6 +173,9 @@ public class JobQueueManager
 
         foreach (WorkerNode worker in availableWorkers)
         {
+            if (_jobQueue.Count == 0)
+                return;
+            
             Job job = _jobQueue.Dequeue();
 
             _queueChangedSinceLastBackup = true;
@@ -325,7 +345,6 @@ public class JobQueueManager
 
     private void ResetAndReleaseSignal()
     {
-        _queueAssignSignal.Wait(0);
         _queueAssignSignal.Release();
     }
 
