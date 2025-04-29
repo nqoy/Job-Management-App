@@ -86,9 +86,9 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
     [Name] NVARCHAR(255) NOT NULL,  -- Job name, cannot be NULL
     [Status] INT NOT NULL,  -- Enum for Job Status (0: Pending, 1: InProgress, 2: Completed, etc.)
     [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: High, etc.)
-    [CreatedAt] DATETIME NOT NULL,  -- Timestamp of when the job was created
-    [StartedAt] DATETIME NOT NULL,  -- Timestamp of when the job started
-    [CompletedAt] DATETIME NOT NULL,  -- Timestamp of when the job completed
+    [CreatedAt] BIGINT NOT NULL,  -- Timestamp of when the job was created
+    [StartedAt] BIGINT NOT NULL,  -- Timestamp of when the job started
+    [CompletedAt] BIGINT NOT NULL,  -- Timestamp of when the job completed
     [Progress] INT CHECK (Progress BETWEEN 0 AND 100),  -- Job progress (0 to 100%)
     [ErrorMessage] NVARCHAR(1000) NULL  -- Optional error message, can be NULL
 );
@@ -99,8 +99,8 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
 CREATE TABLE [JobSystemDB].[dbo].[QueueBackupJobs] (
     [JobID] UNIQUEIDENTIFIER PRIMARY KEY,  -- Primary key, JobID
     [Priority] INT NOT NULL,  -- Job priority (Enum as integer)
-    [QueuingTime] DATETIME NOT NULL,  -- Time the job was queued
-    [BackupTimestamp] DATETIME NOT NULL,  -- Timestamp of when the backup was made
+    [QueuingTime] BIGINT NOT NULL,  -- Time the job was queued
+    [BackupTimestamp] BIGINT NOT NULL,  -- Timestamp of when the backup was made
     CONSTRAINT FK_QueueBackupJobs_Jobs FOREIGN KEY ([JobID]) 
         REFERENCES [JobSystemDB].[dbo].[Jobs]([JobID])  -- Foreign key to Jobs table
 );
