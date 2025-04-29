@@ -82,7 +82,7 @@ Run the following SQL queries in **SQL Server Management Studio (SSMS)** to crea
 #### Jobs Table:
 ```sql
 CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
-    [JobID] GUID PRIMARY KEY,  -- Primary key, JobID
+    [JobID] UNIQUEIDENTIFIER PRIMARY KEY,  -- Primary key, JobID
     [Name] NVARCHAR(255) NOT NULL,  -- Job name, cannot be NULL
     [Status] INT NOT NULL,  -- Enum for Job Status (0: Pending, 1: InProgress, 2: Completed, etc.)
     [Priority] INT NOT NULL,  -- Enum for Job Priority (0: Low, 1: High, etc.)
@@ -97,7 +97,7 @@ CREATE TABLE [JobSystemDB].[dbo].[Jobs] (
 #### QueueBackupJobs Table:
 ```sql
 CREATE TABLE [JobSystemDB].[dbo].[QueueBackupJobs] (
-    [JobID] GUID PRIMARY KEY,  -- Primary key, JobID
+    [JobID] UNIQUEIDENTIFIER PRIMARY KEY,  -- Primary key, JobID
     [Priority] INT NOT NULL,  -- Job priority (Enum as integer)
     [QueuingTime] DATETIME NOT NULL,  -- Time the job was queued
     [BackupTimestamp] DATETIME NOT NULL,  -- Timestamp of when the backup was made
